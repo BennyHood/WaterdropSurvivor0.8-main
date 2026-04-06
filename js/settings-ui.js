@@ -70,11 +70,20 @@
     if (goToCampBtn) {
       goToCampBtn.addEventListener('click', function() {
         closeSettings();
-        // ENGINE 2.0: Redirect to index.html (3D Camp Hub)
-        try {
-          localStorage.setItem('wds_fromSandbox', '1');
-        } catch (e) { /* ignore */ }
-        window.location.href = 'index.html';
+        // ENGINE 2.0: Only redirect to index.html when running inside sandbox.
+        // When already on the camp hub (index.html), use in-page navigation instead
+        // to avoid an unnecessary full reload and avoid poisoning wds_fromSandbox.
+        if (window.location.pathname.indexOf('sandbox.html') !== -1) {
+          try {
+            localStorage.setItem('wds_fromSandbox', '1');
+          } catch (e) { /* ignore */ }
+          window.location.href = 'index.html';
+        } else {
+          // Already on camp hub — navigate in-page
+          if (typeof window.updateCampScreen === 'function') {
+            window.updateCampScreen();
+          }
+        }
       });
     }
 

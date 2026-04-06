@@ -138,6 +138,8 @@
                   campScreen.classList.remove('camp-subsection-active');
                 }
                 if (mainMenuEl) mainMenuEl.style.display = 'flex';
+                // Return immediately so the final fallback cannot override this recovery path
+                return;
               }
             }
             if (campInitOk) {
