@@ -71,7 +71,12 @@ var DF_CFG = {
   ALIGNMENT_FORCE:    0.9,
   COHESION_FORCE:     0.7,
   PLAYER_CHASE_FORCE: 1.4,      // weak player pull in SWARMING state
-  VELOCITY_DAMPING:   0.018,    // frame-rate independent damping coefficient
+  VELOCITY_DAMPING:   0.018,    // per-frame damping coefficient at 60 fps
+
+  // Pre-calculated bases for Math.pow(base, dt * 60) frame-rate independent decay.
+  // Avoids recomputing (1 - coefficient) on every frame tick.
+  DAMPING_BASE:       1.0 - 0.018,  // = 0.982 — swarming velocity retention per frame @60 fps
+  STUN_DECAY_BASE:    0.82,          // 18% velocity loss per frame @60 fps while stunned
 
   // State timings (seconds)
   SWARM_TIME_MIN:     2.0,
@@ -401,9 +406,9 @@ DragonflyEnemy.prototype._stateSwarming = function(dt, playerPos, flock) {
   this.velocity.z += (_v0.z + _v2.z + _v3.z + _v4.z) * dt;
   this.velocity.y  = 0; // altitude controlled separately
 
-  // Velocity damping — linear approximation avoids Math.pow per frame.
-  // Equivalent to ~1.1% reduction per second at 60 fps; clamped so large dt can't go negative.
-  var dampFactor = Math.max(0, 1.0 - DF_CFG.VELOCITY_DAMPING * Math.min(dt * 60, 2.0));
+  // Velocity damping — truly frame-rate independent exponential decay.
+  // Math.pow(base, dt * 60): same per-second result at 30, 60, or 120 fps.
+  var dampFactor = Math.pow(DF_CFG.DAMPING_BASE, dt * 60);
   this.velocity.x *= dampFactor;
   this.velocity.z *= dampFactor;
 
@@ -456,9 +461,9 @@ DragonflyEnemy.prototype._stateDiving = function(dt, playerPos) {
 
 // ─── STUNNED: knocked off course, loses control briefly ──────────────────────
 DragonflyEnemy.prototype._stateStunned = function(dt) {
-  // Velocity decay while stunned — linear approximation avoids Math.pow per frame.
-  // 18% reduction per second at 60 fps; clamped so large dt can't go negative.
-  var stunDecay = Math.max(0, 1.0 - 0.18 * Math.min(dt * 60, 2.0));
+  // Velocity decay while stunned — truly frame-rate independent exponential decay.
+  // Math.pow(base, dt * 60): same per-second result at 30, 60, or 120 fps.
+  var stunDecay = Math.pow(DF_CFG.STUN_DECAY_BASE, dt * 60);
   this.velocity.x *= stunDecay;
   this.velocity.z *= stunDecay;
   this.velocity.y  = 0;
