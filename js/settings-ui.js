@@ -73,7 +73,7 @@
         // ENGINE 2.0: Only redirect to index.html when running inside sandbox.
         // When already on the camp hub (index.html), use in-page navigation instead
         // to avoid an unnecessary full reload and avoid poisoning wds_fromSandbox.
-        if (window.location.pathname.indexOf('sandbox.html') !== -1) {
+        if (window.location.pathname.endsWith('sandbox.html')) {
           try {
             localStorage.setItem('wds_fromSandbox', '1');
           } catch (e) { /* ignore */ }
@@ -82,6 +82,8 @@
           // Already on camp hub — navigate in-page
           if (typeof window.updateCampScreen === 'function') {
             window.updateCampScreen();
+          } else {
+            console.warn('[Settings] updateCampScreen not available; cannot navigate to camp in-page.');
           }
         }
       });
