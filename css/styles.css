@@ -6353,6 +6353,11 @@
     #camp-screen.camp-3d-mode > #account-level-display {
       display: none !important;
     }
+    /* Belt-and-suspenders: always hide 2D building cards — index.html is exclusively
+       3D camp mode, so these cards are never needed regardless of class state. */
+    #camp-buildings-section {
+      display: none !important;
+    }
     /* Header buttons float over the 3D world */
     #camp-screen.camp-3d-mode .camp-header-btns {
       position: fixed;

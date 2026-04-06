@@ -121,8 +121,11 @@ function init() {
     console.warn('[Init] applyGraphicsQuality not yet defined — skipping initial quality pass.');
   }
 
-  createWorld();
-  cacheAnimatedObjects();
+  // World generation is skipped — index.html renders only the 3D CampWorld.
+  // createWorld() and cacheAnimatedObjects() are not called here; the combat
+  // map is only generated when launching a combat run from sandbox.html.
+  // createWorld();
+  // cacheAnimatedObjects();
   player = new Player();
   player.mesh.position.set(12, 0.5, 0);
   

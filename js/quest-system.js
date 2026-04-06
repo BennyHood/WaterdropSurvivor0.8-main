@@ -4774,6 +4774,11 @@
       document.getElementById('main-menu').style.display = 'none';
       document.getElementById('gameover-screen').style.display = 'none';
 
+      // FORCE 3D mode class — always add it so 2D building cards are hidden
+      // regardless of whether CampWorld.enter() has completed yet.
+      const _campScreenEl = document.getElementById('camp-screen');
+      if (_campScreenEl) _campScreenEl.classList.add('camp-3d-mode');
+
       // First-run tutorial hook: fire after current call stack (by then camp-screen is visible)
       // Update action button label based on game state
       const campActionBtn = document.getElementById('camp-action-btn');
@@ -4907,11 +4912,7 @@
           },
         };
         window.CampWorld.enter(renderer, saveData, campCallbacks);
-        // Mark camp-screen as 3D mode only if CampWorld successfully activated
-        if (window.CampWorld.isActive) {
-          const campScreenEl = document.getElementById('camp-screen');
-          if (campScreenEl) campScreenEl.classList.add('camp-3d-mode');
-        }
+        // camp-3d-mode class already forced unconditionally above
       } else {
         // 2D camp mode: hide game container to prevent black canvas showing behind camp UI
         const gameContainer = document.getElementById('game-container');
