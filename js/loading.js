@@ -102,7 +102,8 @@
 
         // Log the state for debugging
         const initOk = window.gameModuleReady && !window.gameInitError;
-        console.log('[Loading] Showing menu — gameModuleReady:', window.gameModuleReady,
+        console.log('[Loading] Force booting to 3D camp — initOk:', initOk,
+          'gameModuleReady:', window.gameModuleReady,
           'initError:', !!window.gameInitError, 'returnFromSandbox:', returnFromSandbox);
 
         // Fade out loading screen
@@ -111,91 +112,51 @@
         setTimeout(function() {
           loadingScreen.style.display = 'none';
 
-          // ── ENGINE 2.0: ALWAYS route to 3D camp, bypass main menu ──
-          // The main menu is now permanently hidden. index.html is the 3D Camp Hub.
-          // On init success OR returning from sandbox, boot directly into the camp.
-          // Only fall back to main menu if init failed AND not returning from sandbox.
-          if (typeof window.updateCampScreen === 'function' && (initOk || returnFromSandbox)) {
-            console.log('[Loading] Routing to 3D camp screen' + (returnFromSandbox ? ' (return from sandbox)' : ' (auto-boot)'));
-            var campScreen = document.getElementById('camp-screen');
-            var mainMenuEl = document.getElementById('main-menu');
-            var campInitOk = false;
-            // Keep main menu permanently hidden
-            if (mainMenuEl) mainMenuEl.style.display = 'none';
-            if (campScreen) {
-              campScreen.classList.remove('camp-subsection-active');
-              campScreen.style.display = 'flex';
-            }
-            try {
-              window.updateCampScreen();
-              campInitOk = true;
-            } catch (e) {
-              console.error('[Loading] updateCampScreen error:', e);
-              // On camp init error, only show main menu if this is a clean boot (not returning from sandbox)
-              if (!returnFromSandbox) {
-                if (campScreen) {
-                  campScreen.style.display = 'none';
-                  campScreen.classList.remove('camp-subsection-active');
-                }
-                if (mainMenuEl) mainMenuEl.style.display = 'flex';
-                // Return immediately so the final fallback cannot override this recovery path
-                return;
-              }
-            }
-            if (campInitOk) {
-              return;
-            }
-          }
-
-          // If init failed (and this is not a sandbox return), fall back to main menu
-          if (!initOk && !returnFromSandbox) {
-            var mainMenu = document.getElementById('main-menu');
-            if (mainMenu) mainMenu.style.display = 'flex';
-            var buttons = mainMenu ? mainMenu.querySelectorAll('.menu-btn') : [];
-            for (var i = 0; i < buttons.length; i++) {
-              window._applyFallbackButtonStyles(buttons[i]);
-            }
-            var statusDiv = document.createElement('div');
-            statusDiv.style.color = '#ff6666';
-            statusDiv.style.fontSize = '12px';
-            statusDiv.style.textAlign = 'center';
-            statusDiv.style.fontFamily = 'monospace';
-            statusDiv.style.position = 'absolute';
-            statusDiv.style.bottom = '10%';
-            statusDiv.style.left = '0';
-            statusDiv.style.right = '0';
-            statusDiv.textContent = '⚠️ Game engine failed to load — tap buttons to retry';
-            var menuButtons = mainMenu ? mainMenu.querySelector('.menu-buttons') : null;
-            if (menuButtons) menuButtons.appendChild(statusDiv);
-            return;
-          }
-
-          // If returning from sandbox but camp init failed, try again (don't show main menu)
-          if (returnFromSandbox) {
-            console.log('[Loading] Returning from sandbox but camp init failed - attempting camp boot anyway');
-            var campScreen = document.getElementById('camp-screen');
-            if (campScreen) {
-              campScreen.style.display = 'flex';
-              campScreen.classList.remove('camp-subsection-active');
-            }
-            return;
-          }
-
-          // Final fallback: bypass main menu and show camp directly (ENGINE 2.0)
-          console.log('[Loading] Final fallback: auto-booting to 3D camp');
-          var mainMenuEl = document.getElementById('main-menu');
-          if (mainMenuEl) mainMenuEl.style.display = 'none';
+          // ── FORCE CAMP BOOT: ALWAYS route to 3D camp, completely bypass main menu ──
+          // The main menu is permanently disabled. index.html boots directly to 3D CampWorld.
+          console.log('[Loading] FORCE BOOT: Launching 3D camp screen' + (returnFromSandbox ? ' (return from sandbox)' : ' (auto-boot)'));
           var campScreen = document.getElementById('camp-screen');
+          var mainMenuEl = document.getElementById('main-menu');
+
+          // Force hide main menu permanently
+          if (mainMenuEl) mainMenuEl.style.display = 'none';
+
+          // Show camp screen
           if (campScreen) {
-            campScreen.style.display = 'flex';
             campScreen.classList.remove('camp-subsection-active');
+            campScreen.style.display = 'flex';
           }
+
+          // Initialize camp - attempt even if init wasn't perfect
           if (typeof window.updateCampScreen === 'function') {
             try {
               window.updateCampScreen();
+              console.log('[Loading] CampWorld initialized successfully');
             } catch (e) {
-              console.error('[Loading] Final fallback updateCampScreen error:', e);
+              console.error('[Loading] updateCampScreen error:', e);
+              console.log('[Loading] Continuing with camp display despite error - CampWorld may self-initialize');
+              // DO NOT fall back to main menu - keep camp visible
             }
+          } else {
+            console.warn('[Loading] updateCampScreen not yet available - polling until ready (max 10s)');
+            // Poll for updateCampScreen to become available (100 × 100ms = 10s max)
+            var pollAttempts = 0;
+            var maxPollAttempts = 100;
+            var campPollInterval = setInterval(function() {
+              pollAttempts++;
+              if (typeof window.updateCampScreen === 'function') {
+                clearInterval(campPollInterval);
+                console.log('[Loading] updateCampScreen available after ' + pollAttempts + ' polls — initializing camp');
+                try {
+                  window.updateCampScreen();
+                } catch (pollErr) {
+                  console.error('[Loading] updateCampScreen (delayed) error:', pollErr);
+                }
+              } else if (pollAttempts >= maxPollAttempts) {
+                clearInterval(campPollInterval);
+                console.warn('[Loading] updateCampScreen never became available after 10s — camp may not initialize');
+              }
+            }, 100);
           }
         }, 500);
       }

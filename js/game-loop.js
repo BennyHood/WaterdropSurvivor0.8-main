@@ -3808,7 +3808,7 @@
     } else {
     try { init(); } catch(e) {
       console.error('[Game Error]', e);
-      console.error('[Game] Initialization failed - game cannot start');
+      console.error('[Game] Initialization failed - proceeding with camp boot anyway (Engine 2.0)');
       window.gameModuleReady = true;
       window.gameInitError = e; // Store the error for display
 
@@ -3819,7 +3819,7 @@
       // Build the error overlay content using DOM APIs to avoid injecting HTML
       var headerDiv = document.createElement('div');
       headerDiv.style.cssText = 'font-size:14px;font-weight:bold;color:#ff0;margin-bottom:4px;';
-      headerDiv.textContent = '⚠️ GAME INIT ERROR — Tap to dismiss';
+      headerDiv.textContent = '⚠️ GAME INIT ERROR — use links below to recover';
       var messageDiv = document.createElement('div');
       messageDiv.style.cssText = 'white-space:pre-wrap;word-break:break-all;max-height:12vh;overflow-y:auto;';
       messageDiv.textContent = (e && e.stack) ? String(e.stack) : String(e);
@@ -3827,118 +3827,25 @@
       sandboxLink.style.cssText = 'margin-top:6px;color:#0ff;text-decoration:underline;cursor:pointer;font-size:13px;';
       sandboxLink.textContent = '→ Try Sandbox Mode instead';
       sandboxLink.onclick = function() { window.location.href = 'sandbox.html'; };
+      var reloadLink = document.createElement('div');
+      reloadLink.style.cssText = 'margin-top:6px;color:#ff0;text-decoration:underline;cursor:pointer;font-size:13px;';
+      reloadLink.textContent = '↺ Reload page';
+      reloadLink.onclick = function() { window.location.reload(); };
       errorDiv.appendChild(headerDiv);
       errorDiv.appendChild(messageDiv);
       errorDiv.appendChild(sandboxLink);
-      errorDiv.onclick = function() { errorDiv.style.display = 'none'; };
+      errorDiv.appendChild(reloadLink);
+      // Overlay is NOT dismissible by clicking — user must use Sandbox or Reload links to recover
       document.body.appendChild(errorDiv);
-      // Auto-dismiss after 4 seconds so it doesn't permanently block buttons
-      setTimeout(function() { if (errorDiv) errorDiv.style.display = 'none'; }, 4000);
+      // NOTE: overlay is NOT auto-dismissed — user must reload or go to Sandbox to recover
 
-      // Show main menu
+      // ── FORCE CAMP BOOT: DO NOT show main menu, boot to camp instead ──
+      // Main menu is permanently disabled. Camp can self-initialize independently.
+      console.log('[Game] Force booting to camp despite init error');
       var mainMenu = document.getElementById('main-menu');
-      if (mainMenu) mainMenu.style.display = 'flex';
-
-      // Attach FALLBACK button handlers since setupMenus() never ran
-      // These provide basic functionality even when init() failed
-      _attachFallbackMenuHandlers();
+      if (mainMenu) mainMenu.style.display = 'none'; // Keep main menu hidden
+      // _attachFallbackMenuHandlers removed: #main-menu is CSS-hidden so its buttons
+      // are unreachable; recovery is handled by the persistent error overlay above.
     }
     } // end THREE check
 
-    // Fallback menu handlers — attached when init() fails
-    // These try to re-init or at least give the user some options
-    function _attachFallbackMenuHandlers() {
-      var startBtn = document.getElementById('start-game-btn');
-      var campBtn = document.getElementById('camp-btn');
-
-      // Make buttons visible since the normal background image alignment may not work
-      // when init fails (the buttons are normally transparent overlays on a background)
-      var applyStyle = window._applyFallbackButtonStyles || function() {};
-      [startBtn, campBtn].forEach(function(btn) { applyStyle(btn); });
-
-      if (startBtn && !startBtn._hasFallback) {
-        startBtn._hasFallback = true;
-        var _retryCount = 0;
-        var _maxRetries = 3;
-        var _retryInFlight = false; // guard: prevents overlapping retries on rapid taps
-        startBtn.addEventListener('click', function() {
-          // Ignore if a retry is already pending
-          if (_retryInFlight) return;
-
-          // Try to re-initialize the game with retry counter and delay
-          var errorDisplay = document.getElementById('init-error-display');
-          if (errorDisplay) errorDisplay.style.display = 'none';
-
-          if (_retryCount >= _maxRetries) {
-            // All retries exhausted — show tappable redirect to sandbox
-            var errDiv = document.getElementById('init-error-display');
-            var msg = 'Game failed to load. Tap here to try Sandbox mode';
-            if (errDiv) {
-              errDiv.style.display = 'block';
-              var errContent = errDiv.querySelector('div:nth-child(2)');
-              if (errContent) errContent.textContent = msg;
-              // Clicking the overlay now navigates to sandbox
-              errDiv.onclick = function() { window.location.href = 'sandbox.html'; };
-            } else {
-              if (confirm(msg)) window.location.href = 'sandbox.html';
-            }
-            return;
-          }
-
-          _retryCount++;
-          _retryInFlight = true;
-          startBtn.disabled = true; // visually prevent double-tap
-          setTimeout(function() {
-            _retryInFlight = false;
-            startBtn.disabled = false;
-            try {
-              init();
-              // If init succeeds, hide menu and start
-              var mainMenuEl = document.getElementById('main-menu');
-              if (mainMenuEl) mainMenuEl.style.display = 'none';
-              if (typeof resetGame === 'function') resetGame();
-              if (typeof startCountdown === 'function') startCountdown();
-            } catch(e2) {
-              console.error('[Retry ' + _retryCount + '] Init failed again:', e2);
-              var errDiv2 = document.getElementById('init-error-display');
-              if (_retryCount >= _maxRetries) {
-                // Final retry failed — show tappable sandbox redirect
-                var failMsg = 'Game failed to load. Tap here to try Sandbox mode';
-                if (errDiv2) {
-                  errDiv2.style.display = 'block';
-                  var errContent2 = errDiv2.querySelector('div:nth-child(2)');
-                  if (errContent2) errContent2.textContent = failMsg;
-                  errDiv2.onclick = function() { window.location.href = 'sandbox.html'; };
-                } else {
-                  if (confirm(failMsg)) window.location.href = 'sandbox.html';
-                }
-              } else {
-                if (errDiv2) {
-                  errDiv2.style.display = 'block';
-                  var errContent3 = errDiv2.querySelector('div:nth-child(2)');
-                  if (errContent3) errContent3.textContent = 'RETRY ' + _retryCount + '/' + _maxRetries + ' FAILED: ' + (e2 && e2.stack ? e2.stack : String(e2));
-                }
-              }
-            }
-          }, 500); // 500ms delay between retries
-        });
-      }
-
-      if (campBtn && !campBtn._hasFallback) {
-        campBtn._hasFallback = true;
-        campBtn.addEventListener('click', function() {
-          // Camp uses its own Three.js scene (camp-world.js) and can work independently
-          try {
-            var campScreen = document.getElementById('camp-screen');
-            if (campScreen) {
-              var mainMenuEl = document.getElementById('main-menu');
-              if (mainMenuEl) mainMenuEl.style.display = 'none';
-              campScreen.style.display = 'flex';
-              if (typeof updateCampScreen === 'function') {
-                try { updateCampScreen(); } catch(campErr) { console.error('[Fallback] Camp update error:', campErr); }
-              }
-            }
-          } catch(e) { console.error('[Fallback] Camp error:', e); }
-        });
-      }
-    }
