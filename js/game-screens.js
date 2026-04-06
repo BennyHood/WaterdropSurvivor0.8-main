@@ -698,6 +698,10 @@ function init() {
 // Wire up main-menu button handlers. Called once from init().
 // START GAME routes to the camp screen (the Engine 2.0 entry point).
 // CAMP button also opens the camp screen.
+// Also wires up the gameover-screen buttons for index.html:
+//   goto-camp-btn    → show 3D camp
+//   quit-to-menu-btn → show 3D camp (Engine 2.0: camp IS the menu)
+//   restart-btn      → redirect to sandbox.html for a new run
 function setupMenus() {
   var startBtn = document.getElementById('start-game-btn');
   var campBtn  = document.getElementById('camp-btn');
@@ -723,6 +727,39 @@ function setupMenus() {
   if (campBtn && !campBtn._menuSetup) {
     campBtn._menuSetup = true;
     campBtn.addEventListener('click', _showCamp);
+  }
+
+  // ── Gameover-screen buttons (Engine 2.0 flow) ──
+  var gotoCampBtn   = document.getElementById('goto-camp-btn');
+  var quitMenuBtn   = document.getElementById('quit-to-menu-btn');
+  var restartBtn    = document.getElementById('restart-btn');
+
+  if (gotoCampBtn && !gotoCampBtn._menuSetup) {
+    gotoCampBtn._menuSetup = true;
+    gotoCampBtn.addEventListener('click', function() {
+      var gameoverScreen = document.getElementById('gameover-screen');
+      if (gameoverScreen) gameoverScreen.style.display = 'none';
+      window._campFromRun = true; // Flag used by quest-system.js to delay the account level-up curtain by 3s on return from a run
+      _showCamp();
+    });
+  }
+
+  // In Engine 2.0, "Quit to Menu" also returns to camp (camp is the hub/menu)
+  if (quitMenuBtn && !quitMenuBtn._menuSetup) {
+    quitMenuBtn._menuSetup = true;
+    quitMenuBtn.addEventListener('click', function() {
+      var gameoverScreen = document.getElementById('gameover-screen');
+      if (gameoverScreen) gameoverScreen.style.display = 'none';
+      _showCamp();
+    });
+  }
+
+  // "Start Run" / "Restart" redirects to sandbox.html for a fresh Engine 2.0 run
+  if (restartBtn && !restartBtn._menuSetup) {
+    restartBtn._menuSetup = true;
+    restartBtn.addEventListener('click', function() {
+      window.location.href = 'sandbox.html';
+    });
   }
 }
 

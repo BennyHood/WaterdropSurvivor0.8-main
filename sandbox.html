@@ -811,14 +811,14 @@
 
       <div class="death-buttons">
         <button class="death-btn-camp" id="goto-camp-btn"
-                onclick="window.location.href='index.html'">
+                onclick="try{localStorage.setItem('wds_fromSandbox','1')}catch(e){}; window.location.href='index.html'">
           ⛺ BACK TO CAMP
         </button>
         <div class="death-btn-row">
           <button class="death-btn-secondary" id="restart-btn"
                   onclick="location.reload();">🔄 RESTART</button>
           <button class="death-btn-secondary" id="quit-to-menu-btn"
-                  onclick="window.location.href='index.html'">🏠 MENU</button>
+                  onclick="try{localStorage.setItem('wds_fromSandbox','1')}catch(e){}; window.location.href='index.html'">🏠 MENU</button>
         </div>
       </div>
     </div>

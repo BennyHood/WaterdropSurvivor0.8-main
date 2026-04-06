@@ -4819,7 +4819,7 @@
             }
           },
           inventory:           () => showInventoryScreen(),
-          campBoard:           () => showCampBoardMenu(),
+          campBoard:           () => { window.location.href = 'sandbox.html'; },
           specialAttacks:      () => {
             if (saveData.tutorialQuests && saveData.tutorialQuests.currentQuest === 'quest3b_useSpecialAttacks') {
               progressTutorialQuest('quest3b_useSpecialAttacks', true);

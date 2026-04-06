@@ -5795,6 +5795,9 @@
     // flow.  A single handler in settings-ui.js is sufficient; no duplicate listener
     // is added here.
     window.updateCampScreen = function () {
+      // Signal to index.html that we are returning from a sandbox run so it boots
+      // directly into the 3D Camp instead of showing the main menu.
+      try { localStorage.setItem('wds_fromSandbox', '1'); } catch (e) { /* ignore */ }
       window.location.href = 'index.html';
     };
 
