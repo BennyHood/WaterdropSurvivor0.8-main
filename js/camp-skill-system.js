@@ -1411,8 +1411,9 @@
           window.addAccountXP(_bXP);
         } else if (typeof saveData !== 'undefined') {
           saveData.accountXP = (saveData.accountXP || 0) + _bXP;
-          if (typeof saveSaveData === 'function') saveSaveData();
         }
+        // Persist the XP award (addAccountXP only saves on level-up)
+        if (typeof saveSaveData === 'function') saveSaveData();
         if (typeof showStatChange === 'function') showStatChange('+' + _bXP + ' Account XP', 'epic');
         
         // Quest progression

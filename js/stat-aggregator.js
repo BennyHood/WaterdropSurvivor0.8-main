@@ -276,7 +276,7 @@
       if (bldgs.prismReliquary && bldgs.prismReliquary.level > 0) {
         var prLvl = bldgs.prismReliquary.level;
         stats.critChance  = (stats.critChance  || 0.05) + 0.03 * prLvl;
-        stats.critDamage  = (stats.critDamage  || 1.0)  + 0.15 * prLvl;
+        stats.critDmg     = (stats.critDmg     || 1.5)  + 0.15 * prLvl;
       }
 
       // Progression House: +5% XP gain per level
@@ -289,8 +289,14 @@
       // Slot Machine building: +1% luck/dropRate per level
       if (bldgs.slotMachine && bldgs.slotMachine.level > 0) {
         var smLvl = bldgs.slotMachine.level;
-        stats.luckBonus   = (stats.luckBonus   || 0) + 0.01 * smLvl;
-        stats.dropRateMult= (stats.dropRateMult|| 1.0) + 0.01 * smLvl;
+        var slotBonus = 0.01 * smLvl;
+        // Apply to canonical runtime stats so the bonus affects gameplay systems.
+        stats.luck         = (stats.luck         || 0)   + slotBonus;
+        stats.dropRate     = (stats.dropRate     || 1.0) + slotBonus;
+        stats.itemDropRate = (stats.itemDropRate || 1.0) + slotBonus;
+        // Preserve legacy/bridge fields for compatibility with any older readers.
+        stats.luckBonus    = (stats.luckBonus    || 0)   + slotBonus;
+        stats.dropRateMult = (stats.dropRateMult || 1.0) + slotBonus;
       }
     }
 

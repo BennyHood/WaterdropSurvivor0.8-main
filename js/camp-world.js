@@ -4789,6 +4789,8 @@
     'wdr-overlay',
     // Advanced Clicker overlay
     'adv-clicker-overlay',
+    // Slot Machine overlay
+    'slot-machine-overlay',
   ];
   window._CAMP_OVERLAY_IDS = _OVERLAY_IDS;
 
@@ -6681,7 +6683,7 @@
         <div style="font-size:13px;color:#ffcc44;margin-bottom:20px;">Your Slot Coins: <b>${currentCoins}</b></div>
         <div id="slot-reels" style="font-size:2.5em;letter-spacing:12px;margin-bottom:20px;min-height:52px;">❓ ❓ ❓</div>
         <div id="slot-result" style="font-size:13px;color:#aaa;min-height:20px;margin-bottom:16px;"></div>
-        <button id="slot-spin-btn" style="font-size:15px;padding:10px 28px;background:linear-gradient(to bottom,#8b00cc,#44007a);color:#fff;border:2px solid #ff44cc;border-radius:5px;cursor:pointer;letter-spacing:1px;margin-right:8px;" ${currentCoins < 1 ? 'disabled style="font-size:15px;padding:10px 28px;background:#333;color:#666;border:2px solid #555;border-radius:5px;cursor:not-allowed;letter-spacing:1px;margin-right:8px;"' : ''}>🎰 SPIN (1 Coin)</button>
+        <button id="slot-spin-btn" ${currentCoins < 1 ? 'disabled' : ''} style="${currentCoins < 1 ? 'font-size:15px;padding:10px 28px;background:#333;color:#666;border:2px solid #555;border-radius:5px;cursor:not-allowed;letter-spacing:1px;margin-right:8px;' : 'font-size:15px;padding:10px 28px;background:linear-gradient(to bottom,#8b00cc,#44007a);color:#fff;border:2px solid #ff44cc;border-radius:5px;cursor:pointer;letter-spacing:1px;margin-right:8px;'}">🎰 SPIN (1 Coin)</button>
         <button id="slot-close-btn" style="font-size:13px;padding:10px 20px;background:rgba(30,30,30,0.9);color:#888;border:1px solid #555;border-radius:5px;cursor:pointer;">Close</button>
       `;
       panel.querySelector('#slot-close-btn').onclick = function () {
