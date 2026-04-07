@@ -3650,6 +3650,11 @@
   }
 
   function _buildPrestigeAltar(def) {
+    const THREE = T();
+    const grp = new THREE.Group();
+    grp.position.set(def.x, 0, def.z);
+    const platformGeo = new THREE.CylinderGeometry(4.0, 4.3, 0.25, 12);
+
     grp.add(_mesh(platformGeo, _lambert(0x303040)));
 
     // Inner raised ring
