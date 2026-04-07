@@ -3745,7 +3745,7 @@
 
     /* Loading Screen */
     #loading-screen {
-      display: flex !important;
+      display: flex;
       position: fixed;
       top: 0;
       left: 0;

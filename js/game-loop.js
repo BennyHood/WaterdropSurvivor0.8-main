@@ -863,10 +863,7 @@
         // Still render the scene so visual effects (camera shake, particles, modals) are visible (PR #82)
         // When CampWorld is active, its dedicated early-return branch handles update/render with its own dt.
         try {
-          if (window.CampWorld && window.CampWorld.isActive) {
-            window.CampWorld.update(typeof dt !== 'undefined' ? dt : 0.016);
-            window.CampWorld.render();
-          } else if (renderer && scene && camera) {
+          if (!(window.CampWorld && window.CampWorld.isActive) && renderer && scene && camera) {
             renderer.render(scene, camera);
           }
         } catch(e) { console.error('Render error (paused):', e); }
@@ -3753,10 +3750,8 @@
         renderer.shadowMap.needsUpdate = (performanceLog.frameCount % 2 === 0) || !!window._shadowForceUpdate;
         window._shadowForceUpdate = false;
         try {
-          if (window.CampWorld && window.CampWorld.isActive) {
-            window.CampWorld.update(typeof dt !== 'undefined' ? dt : 0.016);
-            window.CampWorld.render();
-          } else if (renderer && scene && camera) {
+          // When CampWorld is active, its dedicated early-return branch handles update/render with its own dt.
+          if (!(window.CampWorld && window.CampWorld.isActive) && renderer && scene && camera) {
             renderer.render(scene, camera);
           }
           performanceLog.renderCount++;
