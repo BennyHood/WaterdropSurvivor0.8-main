@@ -151,14 +151,18 @@
           }
 
           // ── Safety net ────────────────────────────────────────────────────
-          // Regardless of whether updateCampScreen() succeeded, make absolutely sure:
-          // 1. The game-container canvas is visible (not hidden by a prior 2D-mode call).
-          // 2. The camp-screen has camp-3d-mode so the solid background doesn't block the canvas.
-          // These are idempotent and harmless if updateCampScreen already handled them.
-          var _gcEl = document.getElementById('game-container');
-          if (_gcEl) _gcEl.style.display = 'block';
-          var _csEl = document.getElementById('camp-screen');
-          if (_csEl) _csEl.classList.add('camp-3d-mode');
+          // Only force 3D camp UI state when the 3D camp is actually available.
+          // Otherwise, preserve the intended 2D fallback UI instead of revealing
+          // an empty/black canvas.
+          var canUse3DCamp = !!(window.CampWorld && window.gameRenderer);
+          if (canUse3DCamp) {
+            var _gcEl = document.getElementById('game-container');
+            if (_gcEl) _gcEl.style.display = 'block';
+            var _csEl = document.getElementById('camp-screen');
+            if (_csEl) _csEl.classList.add('camp-3d-mode');
+          } else {
+            console.warn('[Loading] 3D camp not ready; preserving fallback camp UI');
+          }
 
           // Two nested rAFs let CampWorld.enter() issue its first render call and give
           // the GPU a chance to draw before we reveal the scene.

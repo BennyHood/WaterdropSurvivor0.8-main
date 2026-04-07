@@ -3852,9 +3852,18 @@
       // If init() threw before reaching the requestAnimationFrame(animate) call at
       // line ~579 of game-screens.js, the loop was never started. Without the loop,
       // CampWorld.render() is never called and the 3D camp stays invisible.
-      if (!animationFrameId) {
-        console.log('[Game] Starting animate() loop from catch block (init failed early)');
+      // Only start the loop if a meaningful render/update path is ready to avoid
+      // creating a self-sustaining rAF loop when renderer/scene/camera don't exist.
+      var hasCoreRenderPath =
+        (typeof renderer !== 'undefined' && !!renderer) &&
+        (typeof scene !== 'undefined' && !!scene) &&
+        (typeof camera !== 'undefined' && !!camera);
+      var hasCampFallbackPath = !!(window.CampWorld && window.gameRenderer);
+      if (!animationFrameId && (hasCoreRenderPath || hasCampFallbackPath)) {
+        console.log('[Game] Starting animate() loop from catch block (recovery path is ready)');
         animationFrameId = requestAnimationFrame(animate);
+      } else if (!animationFrameId) {
+        console.warn('[Game] Skipping animate() startup from catch block; renderer/camp fallback not ready');
       }
     }
     } // end THREE check
