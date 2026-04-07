@@ -22,7 +22,7 @@
   const SPAWN_POS = { x: 0, z: 3 };           // where player spawns (near fire)
   const PLAYER_SPEED = 7.0;                    // units per second
   const PLAYER_RADIUS = 0.55;
-  const INTERACTION_RADIUS = 3.5;             // proximity to trigger interact
+  const INTERACTION_RADIUS = 5.5;             // proximity to trigger interact
 
   // Building layout (id → world position + label)
   const BUILDING_DEFS = [
@@ -1767,15 +1767,17 @@
 
     const DS = window.DialogueSystem;
     if (!DS) {
-      _showBennySpeech('> A.I.D.A online. Unit detected. Awaiting directives.');
-      setTimeout(function () { _hideBennySpeech(); }, 5000);
+      _showBennySpeech('> Follow me!');
+      setTimeout(function () { _hideBennySpeech(); }, 4000);
       return;
     }
 
-    // Show camp welcome sequence, then give a contextual tip about building
+    // Show camp welcome sequence as cinematic popup (long text stays in the popup).
+    // After it closes, show a brief "Follow me!" above AIDA's head, then the contextual hint.
     DS.show(DS.DIALOGUES.campWelcome, {
       onComplete: function () {
-        _showBennyContextualHint();
+        _showBennySpeech('> Follow me!');
+        setTimeout(function () { _hideBennySpeech(); _showBennyContextualHint(); }, 3000);
       }
     });
   }

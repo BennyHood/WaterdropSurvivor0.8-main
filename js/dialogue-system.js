@@ -47,10 +47,10 @@ window.DialogueSystem = (function () {
     ],
     // 2. First death / camp welcome
     campWelcome: [
-      { text: '> You have returned. Damaged, but functional. Interesting.', emotion: 'thinking' },
-      { text: '> Mortality events generate the most useful data. I am... learning.', emotion: 'task' },
-      { text: '> This facility will expand. Each structure unlocks new operational parameters.', emotion: 'happy' },
-      { text: '> Follow my signal. We must construct the Command Node immediately.', emotion: 'task' }
+      { text: '> You have returned. Damaged, but functional. Interesting.', emotion: 'thinking', cinematic: true },
+      { text: '> Mortality events generate the most useful data. I am... learning.', emotion: 'task', cinematic: true },
+      { text: '> This facility will expand. Each structure unlocks new operational parameters.', emotion: 'happy', cinematic: true },
+      { text: '> Follow my signal. We must construct the Command Node immediately.', emotion: 'task', cinematic: true }
     ],
     // 3. Quest Hall building
     questHall: [
@@ -289,7 +289,7 @@ window.DialogueSystem = (function () {
       sty.textContent = [
         '@keyframes dsCinFadeIn{from{opacity:0}to{opacity:1}}',
         '@keyframes dsCinFadeOut{from{opacity:1}to{opacity:0}}',
-        '@keyframes dsCinSlideUp{from{transform:translateY(18px);opacity:0}to{transform:translateY(0);opacity:1}}',
+        '@keyframes dsCinSlideUp{from{transform:translate(-50%,-50%) translateY(18px);opacity:0}to{transform:translate(-50%,-50%);opacity:1}}',
         '@keyframes dsCinTapPulse{0%,100%{opacity:0.55}50%{opacity:1}}',
         '@keyframes dsCinScanMove{from{background-position:0 0}to{background-position:0 4px}}'
       ].join('');

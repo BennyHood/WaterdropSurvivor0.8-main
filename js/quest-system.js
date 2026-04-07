@@ -208,119 +208,31 @@
       if (wasGameActive) setGamePaused(true);
       const overlay = document.createElement('div');
       overlay.id = 'comic-info-overlay';
-      overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.95);
-        z-index: 100;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        animation: fadeIn 0.3s ease-out;
-      `;
-      
+      overlay.style.cssText = [
+        'position:fixed','top:0','left:0','width:100%','height:100%',
+        'background:rgba(0,0,0,0.95)','z-index:100',
+        'display:flex','align-items:center','justify-content:center',
+        'animation:fadeIn 0.3s ease-out'
+      ].join(';');
+
       const popup = document.createElement('div');
-      popup.style.cssText = `
-        background: linear-gradient(135deg, #0a0015 0%, #1a0033 50%, #0a0015 100%);
-        border: 3px solid #00ffff;
-        border-radius: 15px;
-        padding: 25px;
-        background: linear-gradient(160deg, #0d0015 0%, #07000e 50%, #0a0510 100%);
-        border: 3px solid #C9A227;
-        border-radius: 4px;
-        padding: 20px;
-        max-width: 90vw;
-        width: 90%;
-        max-height: 85vh;
-        overflow-y: auto;
-        box-sizing: border-box;
-        text-align: center;
-        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1), borderPulse 2s ease-in-out infinite;
-        box-shadow:
-          0 0 30px rgba(0, 255, 255, 0.5),
-          0 0 60px rgba(138, 43, 226, 0.4),
-          inset 0 0 40px rgba(0, 255, 255, 0.1),
-          inset 0 0 80px rgba(138, 43, 226, 0.2);
-        font-family: 'Courier New', monospace;
-        position: relative;
-        animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-        box-shadow: 0 0 30px rgba(201,162,39,0.5), 0 0 60px rgba(0,255,100,0.1);
-        outline: 1px solid rgba(201,162,39,0.2);
-        outline-offset: 3px;
-        font-family: 'Bangers', cursive;
-      `;
-      
+      popup.style.cssText = [
+        'background:linear-gradient(160deg,#0d0015 0%,#07000e 50%,#0a0510 100%)',
+        'border:3px solid #C9A227','border-radius:8px','padding:24px',
+        'max-width:90vw','width:min(560px,90vw)','max-height:85vh',
+        'overflow-y:auto','box-sizing:border-box','text-align:center',
+        'animation:popIn 0.5s cubic-bezier(0.175,0.885,0.32,1.1)',
+        'box-shadow:0 0 30px rgba(201,162,39,0.5),0 0 60px rgba(0,255,100,0.1)',
+        'outline:1px solid rgba(201,162,39,0.2)','outline-offset:3px',
+        'position:relative'
+      ].join(';');
+
       popup.innerHTML = `
-        <div style="
-          font-size: 32px;
-          color: #00ffff;
-          font-weight: bold;
-          margin-bottom: 25px;
-          text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #8a2be2, 2px 2px 4px #000;
-          letter-spacing: 4px;
-          font-family: 'Courier New', monospace;
-          text-transform: uppercase;
-        ">${title}</div>
-        <div style="
-          font-size: 16px;
-          color: #e0e0ff;
-          line-height: 1.8;
-          margin-bottom: 30px;
-          font-family: 'Courier New', monospace;
-          letter-spacing: 1px;
-          background: rgba(0, 0, 0, 0.5);
-          padding: 20px;
-          border-radius: 10px;
-          border: 2px solid rgba(0, 255, 255, 0.3);
-          box-shadow: inset 0 0 20px rgba(138, 43, 226, 0.3);
-        ">${message}</div>
-        <button class="btn comic-info-close-btn" style="
-          font-size: 20px;
-          padding: 15px 40px;
-          background: linear-gradient(135deg, #00ffff 0%, #8a2be2 100%);
-          color: #000;
-          font-family: 'Courier New', monospace;
-          border: 2px solid #00ffff;
-          box-shadow: 0 0 15px rgba(0, 255, 255, 0.6), 0 0 30px rgba(138, 43, 226, 0.4);
-          letter-spacing: 2px;
-          font-weight: bold;
-          text-transform: uppercase;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          font-size: 30px; 
-          color: #C9A227; 
-          font-weight: bold; 
-          margin-bottom: 25px;
-          text-shadow: 0 0 15px rgba(201,162,39,0.9), 2px 2px 0 #000;
-          letter-spacing: 3px;
-        ">${title}</div>
-        <div style="
-          font-size: 16px; 
-          color: #E8D5A3; 
-          line-height: 1.8; 
-          margin-bottom: 30px;
-          font-family: 'Bangers', cursive;
-          letter-spacing: 0.5px;
-          background: rgba(0,0,0,0.4);
-          padding: 18px;
-          border-radius: 2px;
-          border: 1px solid rgba(201,162,39,0.3);
-        ">${message}</div>
-        <button class="btn" style="
-          font-size: 20px; 
-          padding: 14px 38px; 
-          background: linear-gradient(to bottom, #C9A227, #8B6914);
-          color: #000;
-          font-family: 'Bangers', cursive;
-          border: 2px solid #000;
-          box-shadow: 3px 3px 0 #000;
-          letter-spacing: 2px;
-        ">${buttonText}</button>
+        <div style="font-family:'Bangers',cursive;font-size:28px;color:#C9A227;font-weight:bold;margin-bottom:18px;text-shadow:0 0 15px rgba(201,162,39,0.9),2px 2px 0 #000;letter-spacing:3px;text-transform:uppercase;">${title}</div>
+        <div style="font-size:15px;color:#E8D5A3;line-height:1.8;margin-bottom:24px;font-family:'Bangers',cursive;letter-spacing:0.5px;background:rgba(0,0,0,0.4);padding:16px;border-radius:4px;border:1px solid rgba(201,162,39,0.3);text-align:left;">${message}</div>
+        <button class="btn comic-info-close-btn" style="font-size:20px;padding:14px 38px;background:linear-gradient(to bottom,#C9A227,#8B6914);color:#000;font-family:'Bangers',cursive;border:2px solid #000;box-shadow:3px 3px 0 #000;letter-spacing:2px;cursor:pointer;">${buttonText}</button>
       `;
-      
+
       let comicClosed = false;
       const comicCloseHandler = () => {
         if (comicClosed) return;
@@ -329,18 +241,18 @@
         if (wasGameActive) setGamePaused(false);
         if (onClose) onClose();
       };
-      popup.querySelector('button').onclick = comicCloseHandler;
-      
+      // Attach close handler to all buttons (including the main action button)
+      popup.querySelectorAll('button').forEach(btn => { btn.onclick = comicCloseHandler; });
+
       // Add X close button
       const xBtn = document.createElement('button');
       xBtn.className = 'overlay-close-x';
       xBtn.innerHTML = '✕';
       xBtn.title = 'Close';
       xBtn.style.cssText = 'pointer-events:auto;z-index:999;';
-      popup.style.position = 'relative';
       popup.appendChild(xBtn);
       xBtn.onclick = comicCloseHandler;
-      
+
       overlay.appendChild(popup);
       document.body.appendChild(overlay);
 
@@ -687,7 +599,7 @@
       tabBar.style.cssText = 'display:flex;gap:0;';
       const tabDefs = [
         { id: 'story',    label: '📖 Story Quests',  color: '#C9A227' },
-        { id: 'challenges', label: '⚔️ Challenges',  color: '#00ccff' },
+        { id: 'challenges', label: '⚔️ Challenges',  color: '#8855ff' },
         { id: 'achievements', label: '🏆 Achievements', color: '#aa44ff' }
       ];
       let _activeTab = 'story';
@@ -825,7 +737,7 @@
 
       function _renderChallengesTab(container) {
         if (!saveData.questHallChallenges) saveData.questHallChallenges = {};
-        let html = '<div style="font-family:\'Bangers\',cursive;font-size:17px;color:#00ccff;letter-spacing:2px;margin-bottom:4px;">⚔️ RECURRING MILESTONES</div>';
+        let html = '<div style="font-family:\'Bangers\',cursive;font-size:17px;color:#8855ff;letter-spacing:2px;margin-bottom:4px;">⚔️ RECURRING MILESTONES</div>';
         html += '<div style="font-size:11px;color:#555;margin-bottom:14px;letter-spacing:1px;">Complete milestones to earn Account XP and Gold.</div>';
 
         QUEST_HALL_CHALLENGES.forEach(ch => {
@@ -833,18 +745,16 @@
           const done = prog >= ch.target;
           const claimed = !!saveData.questHallChallenges[ch.id];
           const pct = Math.min(100, Math.floor((prog / ch.target) * 100));
-          // Annunaki gold/dark-cyan theme: replace the old blinding light-blue (#00ccff) with
-          // a sleek dark gold for "done-but-unclaimed" and green for "claimed".
-          const borderCol = claimed ? '#33aa33' : done ? '#C9A227' : 'rgba(201,162,39,0.2)';
-          const bgCol = claimed ? 'rgba(0,100,0,0.12)' : done ? 'linear-gradient(135deg,rgba(201,162,39,0.12),rgba(0,30,50,0.7))' : 'rgba(0,20,40,0.5)';
+          const borderCol = claimed ? '#33aa33' : done ? '#C9A227' : 'rgba(100,80,160,0.3)';
+          const bgCol = claimed ? 'rgba(0,100,0,0.12)' : done ? 'linear-gradient(135deg,rgba(201,162,39,0.12),rgba(20,10,40,0.7))' : 'rgba(10,5,25,0.6)';
           html += `<div style="background:${bgCol};border:1px solid ${borderCol};border-radius:6px;padding:12px;margin-bottom:10px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-              <div style="font-family:'Bangers',cursive;font-size:15px;color:${claimed ? '#33aa33' : done ? '#C9A227' : '#88aacc'};letter-spacing:1px;">${ch.icon} ${ch.label}</div>
+              <div style="font-family:'Bangers',cursive;font-size:15px;color:${claimed ? '#33aa33' : done ? '#C9A227' : '#9977cc'};letter-spacing:1px;">${ch.icon} ${ch.label}</div>
               <div style="font-size:10px;color:#555;">+${ch.reward.xp} XP · +${ch.reward.gold} 💰</div>
             </div>
             <div style="font-size:11px;color:#888;margin-bottom:7px;">${ch.desc}</div>
             <div style="background:rgba(0,0,0,0.5);border-radius:4px;height:8px;overflow:hidden;margin-bottom:7px;">
-              <div style="width:${pct}%;height:100%;background:${claimed ? '#33aa33' : done ? 'linear-gradient(90deg,#C9A227,#00ccaa)' : 'rgba(201,162,39,0.3)'};transition:width 0.5s;"></div>
+              <div style="width:${pct}%;height:100%;background:${claimed ? '#33aa33' : done ? 'linear-gradient(90deg,#C9A227,#8855ff)' : 'rgba(136,85,255,0.3)'};transition:width 0.5s;"></div>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;">
               <div style="font-size:10px;color:#666;">${prog.toLocaleString()} / ${ch.target.toLocaleString()}</div>
@@ -892,7 +802,7 @@
         { id: 'ach_quest_5',      icon: '📜', tier: 'uncommon',  label: 'Quest Master',        desc: 'Complete 5 story quests.',                  check: () => (saveData.tutorialQuests && saveData.tutorialQuests.completedQuests ? saveData.tutorialQuests.completedQuests.length : 0) >= 5, xp: 100, freeSpins: 2 }
       ];
 
-      const TIER_COLORS = { common: '#aaaaaa', uncommon: '#55cc55', rare: '#44aaff', epic: '#aa44ff', legendary: '#ffaa00', mythic: '#ff4444' };
+      const TIER_COLORS = { common: '#aaaaaa', uncommon: '#55cc55', rare: '#6655dd', epic: '#aa44ff', legendary: '#ffaa00', mythic: '#ff4444' };
 
       function _renderAchievementsTab(container) {
         if (!saveData.questHallAchievements) saveData.questHallAchievements = {};
