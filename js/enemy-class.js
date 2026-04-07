@@ -2428,7 +2428,7 @@
                     ? new THREE.CapsuleGeometry(_cSize * 0.45, _cSize * 1.2, 3, 4)
                     : new THREE.SphereGeometry(_cSize, 4, 3);
                 const _goreC = [0x6B0000, 0x8B0000, 0x4A0000, 0x550011][Math.floor(Math.random() * 4)];
-                const _cMat  = new THREE.MeshBasicMaterial({ color: _goreC, transparent: true, opacity: 0.92 });
+                const _cMat  = new THREE.MeshBasicMaterial({ color: _goreC });
                 const _cMesh = new THREE.Mesh(_cGeo, _cMat);
                 _cMesh.position.set(
                   this.mesh.position.x + (Math.random() - 0.5) * 0.15,
@@ -2508,7 +2508,11 @@
                       }
                     }
                     _c.life--;
-                    _c.mat.opacity = Math.max(0, (_c.life / 60) * 0.92);
+                    // PERF FIX: Sink into ground and shrink instead of opacity fade (avoids mobile overdraw)
+                    if (_c.life < 60) {
+                      _c.mesh.position.y -= 0.003;
+                      _c.mesh.scale.multiplyScalar(0.985);
+                    }
                     if (_c.life <= 0) {
                       scene.remove(_c.mesh); _c.geo.dispose(); _c.mat.dispose();
                       _chunkMeshes.splice(_i, 1);
@@ -4163,8 +4167,7 @@
                 }
               }
             } else if (fallFrame <= FALL_FRAMES + LINGER_FRAMES + EXPLODE_FRAMES) {
-              // Phase 3: Body dissolves into blood — fade out WITHOUT scale expansion
-              // (old code expanded XZ/collapsed Y each frame → created "big flat disk")
+              // Phase 3: Body dissolves into blood — SINK & SHRINK (no transparency for mobile perf)
               const explodeProgress = (fallFrame - FALL_FRAMES - LINGER_FRAMES) / EXPLODE_FRAMES;
               if (explodeProgress < 0.4) {
                 spawnParticles(deathPos, 0x8B0000, 5);
@@ -4172,18 +4175,13 @@
                 spawnBloodDecal(deathPos);
                 spawnBloodDecal({ x: deathPos.x + (Math.random()-0.5)*1.5, y: 0, z: deathPos.z + (Math.random()-0.5)*1.5 });
               }
-              // Fade out: just reduce opacity, keep existing shape so no flat disk
-              if (dyingMesh.material) {
-                dyingMesh.material.transparent = true;
-                dyingMesh.material.opacity = Math.max(0, 1 - explodeProgress * 0.75);
-              }
+              // PERF FIX: Sink into ground and shrink instead of fading opacity (avoids mobile overdraw)
+              dyingMesh.position.y -= 0.02 * explodeProgress;
+              dyingMesh.scale.multiplyScalar(0.97);
             } else if (fallFrame <= FALL_FRAMES + LINGER_FRAMES + EXPLODE_FRAMES + FADE_FRAMES) {
-              // Phase 4: Fade out remains
-              const fadeProgress = (fallFrame - FALL_FRAMES - LINGER_FRAMES - EXPLODE_FRAMES) / FADE_FRAMES;
-              if (dyingMesh.material) {
-                dyingMesh.material.transparent = true;
-                dyingMesh.material.opacity = Math.max(0, 0.25 * (1 - fadeProgress));
-              }
+              // Phase 4: Continue sinking and shrinking to zero
+              dyingMesh.position.y -= 0.025;
+              dyingMesh.scale.multiplyScalar(0.92);
             } else {
               // Phase 5: Corpse fully faded — either return to pool or dispose.
               // ── POOL PATH ────────────────────────────────────────────────────

@@ -1781,7 +1781,9 @@
     const ny = (yOffset !== undefined) ? yOffset : (0.12 + Math.random() * 0.25);
     const nx = dirX, nz = dirZ;
     hole.position.set(nx * radius, ny, nz * radius);
-    hole.lookAt(parent.localToWorld(new THREE.Vector3(nx * 2, ny, nz * 2)));
+    // PERF FIX: Use pre-allocated _tmpV3b instead of allocating new Vector3 each hit
+    _tmpV3b.set(nx * 2, ny, nz * 2);
+    hole.lookAt(parent.localToWorld(_tmpV3b));
     hole.visible = true;
     enemy._bulletHoleIndex = idx + 1;
     return hole;
@@ -5571,10 +5573,10 @@
   // Called once at boot (from saved preference) and dynamically when user changes.
   const QUALITY_DESCS = {
     ultralow: 'Shadows OFF · Pixel ratio 0.5× · No tone mapping · No post-FX — best for budget phones',
-    low:      'Shadows OFF · Pixel ratio 1× · Linear tone mapping · No post-FX — good for S10/mid-range',
+    low:      'Shadows OFF · Pixel ratio 0.75× (mobile) / 1× (desktop) · Linear tone mapping · No post-FX — good for S10/mid-range',
     medium:   'Shadows ON  · Pixel ratio 1× · Linear tone mapping · Bloom — balanced (default)',
-    high:     'Shadows ON (PCF) · Pixel ratio ≤1.5× · Filmic tone mapping · Bloom + Motion Blur — modern phones',
-    ultra:    'Shadows ON (PCFSoft) · Native pixel ratio · Filmic tone mapping · Bloom + Motion Blur — iPhone 16 / PC',
+    high:     'Shadows ON (PCF) · Pixel ratio 1.5× (mobile) / ≤2× (desktop) · Filmic tone mapping · Bloom + Motion Blur — modern phones',
+    ultra:    'Shadows ON (PCFSoft) · Pixel ratio 1.5× (mobile) / ≤2× (desktop) · Filmic tone mapping · Bloom + Motion Blur — iPhone 16 / PC',
   };
   const DEFAULT_QUALITY = 'ultra';
 
@@ -5628,13 +5630,13 @@
     if (avgFPS < FPS_VERY_LOW_THRESHOLD && tierIdx > 0) {
       // Very low FPS — drop two tiers at once for quick relief
       const newTier = _qualityTiers[Math.max(0, tierIdx - 2)];
-      console.log(`[Auto-Quality] FPS ${avgFPS.toFixed(1)} < ${FPS_VERY_LOW_THRESHOLD} — dropping to ${newTier}`);
+      // console.log(`[Auto-Quality] FPS ${avgFPS.toFixed(1)} < ${FPS_VERY_LOW_THRESHOLD} — dropping to ${newTier}`); // REMOVED: hot-path performance
       _applyGraphicsQuality(newTier);
       _showPerformanceNotification(`Performance mode: ${newTier.toUpperCase()}`);
     } else if (avgFPS < FPS_LOW_THRESHOLD && tierIdx > 0) {
       // Below target — drop one tier
       const newTier = _qualityTiers[tierIdx - 1];
-      console.log(`[Auto-Quality] FPS ${avgFPS.toFixed(1)} < ${FPS_LOW_THRESHOLD} — dropping to ${newTier}`);
+      // console.log(`[Auto-Quality] FPS ${avgFPS.toFixed(1)} < ${FPS_LOW_THRESHOLD} — dropping to ${newTier}`); // REMOVED: hot-path performance
       _applyGraphicsQuality(newTier);
       _showPerformanceNotification(`Performance mode: ${newTier.toUpperCase()}`);
     } else if (avgFPS >= FPS_HIGH_THRESHOLD && tierIdx < _qualityTiers.length - 1) {
@@ -5649,7 +5651,7 @@
       } catch (_) {}
       if (tierIdx < userTierIdx) {
         const newTier = _qualityTiers[tierIdx + 1];
-        console.log(`[Auto-Quality] FPS ${avgFPS.toFixed(1)} >= ${FPS_HIGH_THRESHOLD} — stepping up to ${newTier}`);
+        // console.log(`[Auto-Quality] FPS ${avgFPS.toFixed(1)} >= ${FPS_HIGH_THRESHOLD} — stepping up to ${newTier}`); // REMOVED: hot-path performance
         _applyGraphicsQuality(newTier);
       }
     }
@@ -5692,7 +5694,7 @@
         renderer.toneMappingExposure = 1.0;
         break;
       case 'low':
-        renderer.setPixelRatio(1.0);
+        renderer.setPixelRatio(_isMobile ? 0.75 : 1.0);
         renderer.shadowMap.enabled = false;
         renderer.toneMapping = THREE.LinearToneMapping;
         renderer.toneMappingExposure = 1.0;
@@ -5705,7 +5707,7 @@
         renderer.toneMappingExposure = 1.1;
         break;
       case 'high':
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        renderer.setPixelRatio(_isMobile ? 1.5 : Math.min(window.devicePixelRatio, 2.0));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -5713,8 +5715,8 @@
         break;
       case 'ultra':
       default:
-        // Cap at 1.5 on mobile even in ultra mode to prevent GPU overload from 4K post-processing
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, _isMobile ? 1.5 : 2));
+        // Strictly cap at 1.5 on mobile to prevent GPU overload on high-DPI devices (iPhone 16 @ 3.0)
+        renderer.setPixelRatio(_isMobile ? 1.5 : Math.min(window.devicePixelRatio, 2.0));
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -5743,7 +5745,7 @@
     try { localStorage.setItem('sandboxGraphicsQuality', quality); } catch (_) {}
     // Update gameSettings global if present
     if (window.gameSettings) window.gameSettings.quality = quality;
-    console.log('[SandboxLoop] Graphics quality applied:', quality);
+    // console.log('[SandboxLoop] Graphics quality applied:', quality); // REMOVED: hot-path performance
   }
 
   /**
@@ -6395,8 +6397,9 @@
       rx    = _clamp(px + Math.cos(angle) * dist, -ARENA_RADIUS, ARENA_RADIUS);
       rz    = _clamp(pz + Math.sin(angle) * dist, -ARENA_RADIUS, ARENA_RADIUS);
     }
-    const pos   = new THREE.Vector3(rx, 0, rz);
-    const sw    = SkinwalkerEnemy.acquire(scene, pos);
+    // PERF FIX: Use pre-allocated _tmpV3 instead of allocating new Vector3 each spawn
+    _tmpV3.set(rx, 0, rz);
+    const sw    = SkinwalkerEnemy.acquire(scene, _tmpV3);
     if (!sw) return;
     sw.onAttack = function(dmg) {
       if (!player) return;
@@ -6418,7 +6421,7 @@
       _killSkinwalker(sw);
     };
     _activeSkinwalkers.push(sw);
-    console.log('[SeqWave] Skinwalker spawned at', rx.toFixed(1), rz.toFixed(1));
+    // console.log('[SeqWave] Skinwalker spawned at', rx.toFixed(1), rz.toFixed(1)); // REMOVED: hot-path performance
   }
 
   /** Update all active skinwalkers each frame. */
@@ -7008,7 +7011,7 @@
         if (!this._x2Active) {
           this._x2Active = true;
           _showWaveNotification('🔫 NEW WEAPON! Enemy counts DOUBLED!', '#ffaa00', 3500);
-          console.log('[SeqWave] x2 multiplier activated (new weapon unlocked)');
+          // console.log('[SeqWave] x2 multiplier activated (new weapon unlocked)'); // REMOVED: hot-path performance
         }
       }
     },
@@ -7257,7 +7260,7 @@
             const _eAlive = _e && !_e.dead && (_e.alive === true || _e.alive === undefined);
             if (_eAlive && _mesh && !_mesh.visible && _mesh.position && _mesh.position.y > MIN_VISIBLE_Y_THRESHOLD) {
               _mesh.visible = true;
-              console.warn('[InvisibilityFix] Restored visibility for ' + _entry.type, _e);
+              // console.warn('[InvisibilityFix] Restored visibility for ' + _entry.type, _e); // REMOVED: hot-path performance
             }
           }
         }
@@ -7270,12 +7273,12 @@
             if (_star && _star.active && _star.mesh && _star.mesh.position && _star.mesh.position.y > MIN_VISIBLE_Y_THRESHOLD) {
               if (!_star.mesh.visible) {
                 _star.mesh.visible = true;
-                console.warn('[InvisibilityFix] Restored visibility for XP star', _star);
+                // console.warn('[InvisibilityFix] Restored visibility for XP star', _star); // REMOVED: hot-path performance
               }
               // Also restore if scale was accidentally zeroed out
               if (_star.mesh.scale.x < 0.001) {
                 _star.mesh.scale.set(1, 1, 1);
-                console.warn('[InvisibilityFix] Restored scale for XP star', _star);
+                // console.warn('[InvisibilityFix] Restored scale for XP star', _star); // REMOVED: hot-path performance
               }
             }
           }

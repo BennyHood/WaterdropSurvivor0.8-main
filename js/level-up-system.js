@@ -1821,6 +1821,10 @@ window.spawnBossChest = function(x, z) {
 
               // Wait 0.2s after shards, then close everything
               setTimeout(() => {
+                // PERF FIX: Clean up DOM elements and event listeners to prevent memory leaks
+                const upgradeList = document.getElementById('upgrade-list');
+                if (upgradeList) upgradeList.innerHTML = ''; // Remove all cards and their event listeners
+
                 // Always close modal
                 modal.style.display = 'none';
                 modal.style.transform = '';
