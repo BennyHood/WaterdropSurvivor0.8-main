@@ -1199,8 +1199,17 @@
   }
 
   function _fireProjectile(fromX, fromZ, toX, toZ, weaponKey, weaponDmg, explosionRadius) {
-    const p = _projPool.find(function (o) { return !o.active; });
-    if (!p) return;
+    let p = _projPool.find(function (o) { return !o.active; });
+    if (!p) {
+      const geo = new THREE.SphereGeometry(0.065, 5, 5);
+      const mat = new THREE.MeshBasicMaterial({ color: 0xFFFFAA });
+      const m = new THREE.Mesh(geo, mat);
+      m.visible = false;
+      scene.add(m);
+      const slot = { mesh: m, mat: mat, active: false, vx: 0, vz: 0, distSq: 0, ox: 0, oz: 0, weaponKey: 'gun', weaponDmg: 0, explosionRadius: 0 };
+      _projPool.push(slot);
+      p = slot;
+    }
     const dx = toX - fromX, dz = toZ - fromZ;
     const len = Math.sqrt(dx * dx + dz * dz) || 1;
     p.vx = (dx / len) * PROJECTILE_SPEED;
@@ -1220,6 +1229,7 @@
   function _updateProjectiles(dt) {
     for (let i = _activeProjList.length - 1; i >= 0; i--) {
       const p = _activeProjList[i];
+      if (!p) continue;
       if (!p.active) { _activeProjList.splice(i, 1); continue; }
 
       p.mesh.position.x += p.vx * dt;

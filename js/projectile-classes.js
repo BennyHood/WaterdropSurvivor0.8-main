@@ -623,6 +623,7 @@
         // Brute-force distance check: bullets move fast (tunneling prevention via hitRadius)
         for (let i = 0; i < enemies.length; i++) {
           const enemy = enemies[i];
+          if (!enemy) continue;
           if (!enemy.active || enemy.isDead) continue;
           if (!enemy.mesh) continue; // Guard: mesh disposed or instancing active
           if (this.hitEnemies.has(enemy)) continue; // Skip already-hit enemies
@@ -1653,6 +1654,7 @@
         // Collision Check — brute-force scan (no spatial hash to avoid tunneling)
         for (let i = 0; i < enemies.length; i++) {
           const enemy = enemies[i];
+          if (!enemy) continue;
           if (!enemy.active || enemy.isDead) continue;
           if (!enemy.mesh) continue; // Guard: mesh disposed or instancing active
           const distSq = (this.mesh.position.x - enemy.mesh.position.x) ** 2 + (this.mesh.position.z - enemy.mesh.position.z) ** 2;
@@ -1847,6 +1849,7 @@
         const dmg = weapons.meteor.damage * playerStats.strength;
         
         enemies.forEach(e => {
+          if (!e) return; // Guard: sparse array slots
           if (e.isDead || !e.mesh) return; // Guard: skip dead or mesh-less enemies
           const d = e.mesh.position.distanceTo(this.target);
           if (d < range) {
