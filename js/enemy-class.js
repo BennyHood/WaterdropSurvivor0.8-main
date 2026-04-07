@@ -118,6 +118,15 @@
     const DEFAULT_ENEMY_COLOR = _ENEMY_COLORS[0]; // green (same as Tank/index-0)
     // Expose for use by object-pool.js when resetting pooled enemy material colors
     window._ENEMY_COLORS = _ENEMY_COLORS;
+
+    // Helper: get the base blood color for an enemy instance (reads BloodV2 table if available)
+    function _getEnemyBloodColor(enemy) {
+      if (enemy && enemy.enemyType && window.BloodV2 && window.BloodV2.ENEMY_BLOOD) {
+        var _eb = window.BloodV2.ENEMY_BLOOD[enemy.enemyType];
+        if (_eb) return _eb.base;
+      }
+      return 0xcc1100;
+    }
     const ENEMY_INSTANCING_ENABLED = window.ENEMY_INSTANCING_ENABLED === true;
 
     // ── Shared enemy projectile resources — created once, reused by every enemy shot ──────────
@@ -3217,7 +3226,7 @@
 
         // Weapon-specific trauma effects
         if (window.TraumaSystem) {
-          var _eColor = (this.enemyType && window.BloodV2 && window.BloodV2.ENEMY_BLOOD && window.BloodV2.ENEMY_BLOOD[this.enemyType]) ? window.BloodV2.ENEMY_BLOOD[this.enemyType].base : 0xcc1100;
+          var _eColor = _getEnemyBloodColor(this);
           if (damageType === 'shotgun' || damageType === 'doubleBarrel' || damageType === 'pumpShotgun' || damageType === 'autoShotgun') {
             if (hitPoint) {
               var _blastDir = { x: 0, z: 0 };
@@ -3499,7 +3508,7 @@
 
         // TraumaSystem death gore
         if (window.TraumaSystem) {
-          var _deathColor = (this.enemyType && window.BloodV2 && window.BloodV2.ENEMY_BLOOD && window.BloodV2.ENEMY_BLOOD[this.enemyType]) ? window.BloodV2.ENEMY_BLOOD[this.enemyType].base : 0xcc1100;
+          var _deathColor = _getEnemyBloodColor(this);
           var _deathPos = this.mesh ? this.mesh.position : null;
           if (_deathPos) {
             if (damageType === 'shotgun' || damageType === 'doubleBarrel' || damageType === 'pumpShotgun' || damageType === 'autoShotgun') {

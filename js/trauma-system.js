@@ -25,6 +25,7 @@
   // ─── Internal State ─────────────────────────────────────────────────────────
   let _scene = null;
   let _initialized = false;
+  let _arterialPumpIdCounter = 0;  // monotonic counter for arterial pump fake-enemy IDs
 
   // Wound decal system (planes attached to enemy meshes)
   const _woundDecals = []; // { mesh, parentEnemy, life, position }
@@ -683,7 +684,7 @@
       var fakeEnemy = {
         alive: true,
         enemyType: 'default',
-        id: 'pump_' + Math.floor(Math.random() * 1e9),
+        id: 'pump_' + (++_arterialPumpIdCounter),
         hp: 1, maxHp: 1,
         mesh: { position: { x: position.x, y: position.y, z: position.z }, scale: { y: 1 } }
       };

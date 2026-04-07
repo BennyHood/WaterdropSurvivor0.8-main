@@ -65,6 +65,11 @@ DECAL_FADE:       300.0,  // seconds before ground decal fades
 DRIP_RATE:        0.15,  // seconds between wound drips (base)
 PUMP_RATE:        0.05,  // seconds between arterial pumps
 BOUNCE_DECAL_PROB: 0.10, // probability of spawning a decal on first bounce
+// V-cone spray constants
+BLOOD_SPRAY_CONE_HALF_ANGLE: 0.61, // ~35 degrees — aperture of bullet exit V-cone
+BLOOD_SPRAY_GRAVITY_MULTIPLIER: -2.0, // downward arc bias for exit spray drops
+// Arterial pumping constants
+ARTERIAL_PHASE_INCREMENT: 0.45, // phase step per pump tick for sine-wave pulsation
 };
 
 // ══════════════════════════════════════════
@@ -1193,7 +1198,7 @@ var ey = s.enemy.mesh ? s.enemy.mesh.position.y : 0;
 var ez = s.enemy.mesh ? s.enemy.mesh.position.z : 0;
 var wx = ex + s.lx, wy = ey + s.ly, wz = ez + s.lz;
 
-s.phase = (s.phase || 0) + 0.45;
+s.phase = (s.phase || 0) + CFG.ARTERIAL_PHASE_INCREMENT;
 var sineBoost = 1.0 + Math.sin(s.phase) * 0.55;
 var spd   = (3.5 + s.pressure * 9.5) * sineBoost;
 var count = Math.max(1, Math.ceil(s.pressure * 6 * (0.5 + 0.5 * Math.abs(Math.sin(s.phase)))));
@@ -1285,11 +1290,11 @@ tx = -ny/_tl; ty = nx/_tl; tz = 0;
 bx = ny*tz - nz*ty;
 by = nz*tx - nx*tz;
 bz = nx*ty - ny*tx;
-var coneHalfAngle = 0.61;
+var coneHalfAngle = CFG.BLOOD_SPRAY_CONE_HALF_ANGLE;
 var sinCone = Math.sin(coneHalfAngle);
 var cosCone = Math.cos(coneHalfAngle);
 var coneCount = Math.floor(count * 0.6);
-var gravBias = -2.0 * sinCone;
+var gravBias = CFG.BLOOD_SPRAY_GRAVITY_MULTIPLIER * sinCone;
 
 for (var i = 0; i < count; i++) {
 var d = _getFreeDrop(_dropData);
