@@ -5529,7 +5529,7 @@
 
       // Fallback: ensure CampWorld is entered even if the renderer ref was unavailable earlier
       if (window.CampWorld && !window.CampWorld.isActive) {
-          window.CampWorld.enter();
+          window.CampWorld.enter(_rendererRef, typeof saveData !== 'undefined' ? saveData : {});
           document.getElementById('camp-screen').classList.add('camp-3d-mode');
       }
     }

@@ -842,7 +842,9 @@
       if (countdownActive) {
         // During countdown, update spawn sequence particles and render but skip full game logic
         if (window.SpawnSequence) window.SpawnSequence.update(dt);
-        try { renderer.render(scene, camera); } catch(e) { console.error('Render error (countdown):', e); }
+        if (!(window.CampWorld && window.CampWorld.isActive)) {
+          try { renderer.render(scene, camera); } catch(e) { console.error('Render error (countdown):', e); }
+        }
         return;
       }
 
@@ -859,7 +861,9 @@
           camera.lookAt(player.mesh.position);
         }
         // Still render the scene so visual effects (camera shake, particles, modals) are visible (PR #82)
-        try { renderer.render(scene, camera); } catch(e) { console.error('Render error (paused):', e); }
+        if (!(window.CampWorld && window.CampWorld.isActive)) {
+          try { renderer.render(scene, camera); } catch(e) { console.error('Render error (paused):', e); }
+        }
         return;
       }
       
