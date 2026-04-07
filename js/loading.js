@@ -107,8 +107,17 @@
         // Clear return-from-sandbox flag so it doesn't persist across reloads
         try { localStorage.removeItem('wds_fromSandbox'); } catch (e) { /* ignore */ }
 
-        // Hide loading screen unconditionally
-        loadingScreen.style.display = 'none';
+        // Fade out loading screen
+        loadingScreen.style.opacity = '0';
+        loadingScreen.style.pointerEvents = 'none';
+        setTimeout(function() {
+          loadingScreen.style.setProperty('display', 'none', 'important');
+        }, 500);
+
+        // Hide main menu
+        var mainMenu = document.getElementById('main-menu');
+        if (mainMenu) mainMenu.style.display = 'none';
+
         if (typeof window.updateCampScreen === 'function') {
             window.updateCampScreen();
         }
