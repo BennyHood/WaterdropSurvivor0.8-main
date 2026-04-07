@@ -3750,6 +3750,7 @@
       left: 0;
       width: 100%;
       height: 100%;
+      background-color: #1a1a2e; /* Dark fallback — prevents white flash if image is missing or slow */
       background-image: url('../321E5768-E77B-4471-8C32-5D7C1D715A4B.png');
       background-size: cover;
       background-position: center;

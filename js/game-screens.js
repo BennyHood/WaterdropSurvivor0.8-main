@@ -16,8 +16,8 @@ function init() {
 
   // Scene
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(COLORS.bg);
-  scene.fog = new THREE.Fog(COLORS.bg, RENDERER_CONFIG.fogNear, RENDERER_CONFIG.fogFar);
+  scene.background = new THREE.Color(0x1a1a2e);
+  scene.fog = new THREE.Fog(0x1a1a2e, RENDERER_CONFIG.fogNear, RENDERER_CONFIG.fogFar);
   
   particlePool = new ObjectPool(
     () => {

@@ -708,7 +708,24 @@
 
     function animate(time) {
       animationFrameId = requestAnimationFrame(animate);
-      
+
+      // ── Safe CampWorld render branch ─────────────────────────────────────────
+      // Must come BEFORE the renderer/scene/camera safety check so CampWorld can
+      // render even when the main combat scene failed to initialise (e.g. init()
+      // threw before window.gameRenderer was set or before animate() was started
+      // in game-screens.js).  CampWorld owns its own THREE.WebGLRenderer reference
+      // set by warmUp() / enter() and does not depend on the combat scene at all.
+      if (window.CampWorld && window.CampWorld.isActive) {
+        if (time - _lastAnimTime < _MIN_FRAME_MS) return;
+        _lastAnimTime = time;
+        const _campDt = lastTime === null ? 0.016 : Math.min((time - lastTime) / 1000, 0.033);
+        lastTime = time;
+        gameTime = time / 1000;
+        try { window.CampWorld.update(_campDt); } catch (e) { console.error('[CampWorld] Update error:', e); }
+        try { window.CampWorld.render(); } catch (e) { console.error('[CampWorld] Render error:', e); }
+        return;
+      }
+
       // Safety check: Ensure Three.js components are initialized before rendering (PR #82)
       if (!renderer || !scene || !camera) {
         return;
@@ -777,13 +794,6 @@
       // Expose dt globally so other modules (e.g. enemy-class.js) can gate cosmetics by FPS
       window._lastDt = dt;
       
-      // 3D Camp Hub World — update and render when active, skip all game logic
-      if (window.CampWorld && window.CampWorld.isActive) {
-        try { window.CampWorld.update(dt); } catch(e) { console.error('[CampWorld] Update error:', e); }
-        try { window.CampWorld.render(); } catch(e) { console.error('[CampWorld] Render error:', e); }
-        return;
-      }
-
       // Day/Night Cycle - Update lighting smoothly (non-blocking)
       // Runs every frame regardless of pause state for smooth visual transitions
       updateDayNightCycle(dt);

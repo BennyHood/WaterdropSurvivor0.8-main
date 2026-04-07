@@ -4771,8 +4771,10 @@
       if (uiLayer) uiLayer.style.visibility = 'hidden';
 
       // Hide main menu and gameover screen to prevent overlap with camp
-      document.getElementById('main-menu').style.display = 'none';
-      document.getElementById('gameover-screen').style.display = 'none';
+      const _mainMenuEl = document.getElementById('main-menu');
+      if (_mainMenuEl) _mainMenuEl.style.display = 'none';
+      const _gameoverEl = document.getElementById('gameover-screen');
+      if (_gameoverEl) _gameoverEl.style.display = 'none';
 
       // Apply 3D camp mode only when CampWorld and the renderer are actually available.
       // This preserves the 2D fallback UI (interactive building cards, pointer-events) if
@@ -4783,7 +4785,15 @@
       // edge-case where the let-scoped variable is not in scope here (e.g. init() partial failure).
       const _rendererRef = (typeof renderer !== 'undefined' ? renderer : null) || window.gameRenderer;
       const canUse3DCamp = !!(window.CampWorld && _rendererRef);
-      if (_campScreenEl) _campScreenEl.classList.toggle('camp-3d-mode', canUse3DCamp);
+      // Use classList.add/remove instead of toggle(name, bool) to avoid accidentally stripping
+      // the class if canUse3DCamp is momentarily false due to a timing race.
+      if (_campScreenEl) {
+        if (canUse3DCamp) {
+          _campScreenEl.classList.add('camp-3d-mode');
+        } else {
+          _campScreenEl.classList.remove('camp-3d-mode');
+        }
+      }
       // When 3D camp is active, also directly hide the buildings section so there is no
       // flash of 2D cards before the CSS rule takes effect.
       if (canUse3DCamp) {
