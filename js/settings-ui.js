@@ -424,4 +424,152 @@
   // Expose dialog system globally
   window.showGameDialog = showGameDialog;
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // ACCOUNT & LINKING TAB
+  // ═══════════════════════════════════════════════════════════════════════════
+  (function _initAccountLinkingTab() {
+    var LINK_REWARD = { gold: 1000, gems: 25 };
+
+    // Inject CSS once
+    if (!document.getElementById('acct-link-style')) {
+      var s = document.createElement('style');
+      s.id = 'acct-link-style';
+      s.textContent = [
+        '@keyframes alRewardPop{0%{opacity:0;transform:scale(0.7)}60%{transform:scale(1.15)}100%{opacity:1;transform:scale(1)}}',
+        '.al-btn{display:flex;align-items:center;gap:10px;width:100%;padding:11px 16px;',
+          'margin-bottom:10px;border-radius:10px;border:2px solid;cursor:pointer;',
+          'font-family:"Bangers",cursive;font-size:1.05em;letter-spacing:1px;',
+          'background:rgba(0,0,0,0.4);color:#fff;transition:transform .15s,box-shadow .15s;}',
+        '.al-btn:active{transform:scale(0.96);}',
+        '.al-btn.linked{opacity:0.55;cursor:default;}',
+        '.al-btn.apple{border-color:#fff;} .al-btn.google{border-color:#4285F4;} .al-btn.web{border-color:#00eeff;}',
+        '.al-btn:hover:not(.linked){box-shadow:0 0 12px currentColor;}',
+        '#al-reward-popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);',
+          'background:linear-gradient(135deg,#1a1a2e,#0d1020);border:3px solid #FFD700;',
+          'border-radius:14px;padding:28px 36px;text-align:center;z-index:9999;',
+          'font-family:"Bangers",cursive;color:#FFD700;font-size:1.4em;letter-spacing:2px;',
+          'box-shadow:0 0 40px #FFD700aa;animation:alRewardPop .4s ease-out;}',
+      ].join('');
+      document.head.appendChild(s);
+    }
+
+    function _showLinkReward(providerName) {
+      var popup = document.createElement('div');
+      popup.id = 'al-reward-popup';
+      popup.innerHTML = '🔗 ' + providerName + ' LINKED!<br>'
+        + '<span style="font-size:0.75em;color:#fff;">+'
+        + LINK_REWARD.gold + ' Gold &nbsp;+' + LINK_REWARD.gems + ' Gems</span><br>'
+        + '<button onclick="this.parentNode.remove()" style="margin-top:14px;padding:6px 20px;'
+        + 'font-family:Bangers,cursive;background:#FFD700;border:none;border-radius:8px;'
+        + 'cursor:pointer;font-size:0.75em;">✓ NICE</button>';
+      document.body.appendChild(popup);
+      setTimeout(function() { if (popup.parentNode) popup.remove(); }, 4000);
+    }
+
+    function _handleLink(provider) {
+      var key = 'wds_linked_' + provider;
+      if (localStorage.getItem(key)) return; // already linked — no duplicate reward
+      localStorage.setItem(key, '1');
+      // Grant one-time reward via save data
+      try {
+        var sd = window.getSaveData ? window.getSaveData() : null;
+        if (sd) {
+          sd.gold = (sd.gold || 0) + LINK_REWARD.gold;
+          sd.gems = (sd.gems || 0) + LINK_REWARD.gems;
+          var linked = sd.accountLinks || {};
+          linked[provider] = { isLinked: true, linkedAt: Date.now() };
+          sd.accountLinks = linked;
+          if (window.saveSaveData) window.saveSaveData();
+        }
+      } catch(e) {}
+      _showLinkReward(provider);
+      // Refresh button states in any open panel
+      _refreshLinkButtons();
+    }
+
+    var _lastPanel = null;
+
+    function _refreshLinkButtons() {
+      if (!_lastPanel) return;
+      ['apple','google','web'].forEach(function(p) {
+        var btn = _lastPanel.querySelector('[data-link="' + p + '"]');
+        if (!btn) return;
+        if (localStorage.getItem('wds_linked_' + p)) {
+          btn.classList.add('linked');
+          btn.querySelector('.al-status').textContent = '✔ Linked';
+        }
+      });
+    }
+
+    function _buildLinkingPanel(container) {
+      _lastPanel = container;
+      container.innerHTML = '';
+      var title = document.createElement('div');
+      title.style.cssText = 'color:#FFD700;font-family:"Bangers",cursive;font-size:1.2em;letter-spacing:2px;margin-bottom:14px;';
+      title.textContent = '🔗 ACCOUNT & LINKING';
+      container.appendChild(title);
+
+      var desc = document.createElement('div');
+      desc.style.cssText = 'color:#aaa;font-family:Arial,sans-serif;font-size:12px;margin-bottom:16px;';
+      desc.textContent = 'Link your account to earn a one-time reward of +' + LINK_REWARD.gold + ' Gold & +' + LINK_REWARD.gems + ' Gems.';
+      container.appendChild(desc);
+
+      var providers = [
+        { id: 'apple',  label: '🍎 Login with Apple',      cls: 'apple' },
+        { id: 'google', label: '🌐 Login with Google',      cls: 'google' },
+        { id: 'web',    label: '🔗 Link Web Account',       cls: 'web' }
+      ];
+
+      providers.forEach(function(p) {
+        var btn = document.createElement('button');
+        btn.className = 'al-btn ' + p.cls;
+        btn.setAttribute('data-link', p.id);
+        var already = !!localStorage.getItem('wds_linked_' + p.id);
+        if (already) btn.classList.add('linked');
+        var statusSpan = document.createElement('span');
+        statusSpan.className = 'al-status';
+        statusSpan.style.cssText = 'margin-left:auto;font-size:0.8em;color:#2ecc71;';
+        statusSpan.textContent = already ? '✔ Linked' : '';
+        btn.innerHTML = p.label + ' ';
+        btn.appendChild(statusSpan);
+        btn.onclick = function() {
+          if (btn.classList.contains('linked')) return;
+          _handleLink(p.id);
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    // Hook into settings modal: add tab button when modal opens
+    var _settingsTabInjected = false;
+    var _origOpen = window.openSettings;
+
+    function _injectLinkTab() {
+      if (_settingsTabInjected) return;
+      var scroll = document.querySelector('#settings-modal .settings-scroll');
+      if (!scroll) return;
+      _settingsTabInjected = true;
+
+      // Add a section separator and the linking panel directly inside the settings scroll
+      var sep = document.createElement('div');
+      sep.className = 'settings-section-label';
+      sep.textContent = 'ACCOUNT & LINKING';
+      sep.style.marginTop = '16px';
+      scroll.appendChild(sep);
+
+      var linkContainer = document.createElement('div');
+      linkContainer.style.cssText = 'padding:4px 0;';
+      scroll.appendChild(linkContainer);
+      _buildLinkingPanel(linkContainer);
+    }
+
+    // Try to inject after a short delay to ensure modal DOM exists
+    setTimeout(_injectLinkTab, 1200);
+
+    // Also expose for manual calls
+    window.showAccountLinkingPanel = function(container) {
+      if (container) _buildLinkingPanel(container);
+    };
+  })();
+
 })();
