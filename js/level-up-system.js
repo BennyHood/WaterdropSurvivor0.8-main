@@ -288,6 +288,13 @@ function showRelicLootScreen(goldBonus) {
       holdT = setTimeout(() => {
         holdT = null;
         try { relic.apply(); } catch(e) { console.error('[Relic]', e); }
+        // PERF FIX: Clean up event listeners before removing overlay to prevent memory leaks
+        picks.forEach((r, i) => {
+          const c = row.children[i];
+          if (c) {
+            c.replaceWith(c.cloneNode(true)); // Remove all event listeners by replacing with clone
+          }
+        });
         overlay.remove();
         if (typeof forceGameUnpause === 'function') forceGameUnpause();
         if (typeof addGold === 'function') addGold(goldBonus);
@@ -1821,6 +1828,10 @@ window.spawnBossChest = function(x, z) {
 
               // Wait 0.2s after shards, then close everything
               setTimeout(() => {
+                // PERF FIX: Clean up DOM elements and event listeners to prevent memory leaks
+                const upgradeList = document.getElementById('upgrade-list');
+                if (upgradeList) upgradeList.innerHTML = ''; // Remove all cards and their event listeners
+
                 // Always close modal
                 modal.style.display = 'none';
                 modal.style.transform = '';
