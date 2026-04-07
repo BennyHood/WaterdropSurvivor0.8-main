@@ -126,10 +126,25 @@ function init() {
   // map is only generated when launching a combat run from sandbox.html.
   // createWorld();
   // cacheAnimatedObjects();
-  player = new Player();
-  player.mesh.position.set(12, 0.5, 0);
-  
-  initializeGear();
+
+  // Create player safely for index.html (3D Camp Hub mode).
+  // Player mesh is created but NOT added to scene to avoid null reference issues
+  // since the combat world doesn't exist. CampWorld handles its own scene rendering.
+  try {
+    player = new Player();
+    player.mesh.position.set(12, 0.5, 0);
+    // DO NOT add player.mesh to scene here - CampWorld manages its own entities
+    console.log('[Init] Player created for camp mode (not added to scene)');
+  } catch (e) {
+    console.warn('[Init] Player creation skipped for camp mode:', e.message);
+    player = null; // Set to null to prevent undefined errors
+  }
+
+  try {
+    initializeGear();
+  } catch (e) {
+    console.warn('[Init] Gear initialization failed:', e.message);
+  }
   if (typeof updateBackgroundMusic === 'function') updateBackgroundMusic();
   
   if (window.GameHarvesting) {
@@ -167,6 +182,8 @@ function init() {
     window.GameRageCombat.onSpecialAttack((sa) => {
       const pPos = player && player.mesh ? player.mesh.position : null;
       if (!pPos) return;
+      // Guard: enemies array might not exist in camp mode
+      if (!enemies || !Array.isArray(enemies)) return;
       const radSq = sa.damageRadius * sa.damageRadius;
       for (const enemy of enemies) {
         if (!enemy || !enemy.mesh || enemy.isDead) continue;
@@ -245,14 +262,17 @@ function init() {
     const pPos = player.mesh.position;
     let nearest = null;
     let nearestDist = Infinity;
-    for (const enemy of enemies) {
-      if (!enemy || !enemy.mesh || enemy.isDead) continue;
-      const dx = enemy.mesh.position.x - pPos.x;
-      const dz = enemy.mesh.position.z - pPos.z;
-      const dist = Math.sqrt(dx*dx + dz*dz);
-      if (dist < MELEE_RANGE && dist < nearestDist) {
-        nearestDist = dist;
-        nearest = enemy;
+    // Guard: enemies array might not exist in camp mode
+    if (enemies && Array.isArray(enemies)) {
+      for (const enemy of enemies) {
+        if (!enemy || !enemy.mesh || enemy.isDead) continue;
+        const dx = enemy.mesh.position.x - pPos.x;
+        const dz = enemy.mesh.position.z - pPos.z;
+        const dist = Math.sqrt(dx*dx + dz*dz);
+        if (dist < MELEE_RANGE && dist < nearestDist) {
+          nearestDist = dist;
+          nearest = enemy;
+        }
       }
     }
     if (nearest) {

@@ -4785,6 +4785,12 @@
       // edge-case where the let-scoped variable is not in scope here (e.g. init() partial failure).
       const _rendererRef = (typeof renderer !== 'undefined' ? renderer : null) || window.gameRenderer;
       const canUse3DCamp = !!(window.CampWorld && _rendererRef);
+      // CRITICAL: Log diagnostic info for boot crash debugging
+      console.log('[updateCampScreen] Diagnostic:', {
+        hasCampWorld: !!window.CampWorld,
+        hasRenderer: !!_rendererRef,
+        canUse3DCamp: canUse3DCamp
+      });
       // Explicit add/remove used here for clarity.
       if (_campScreenEl) {
         if (canUse3DCamp) {
@@ -4942,7 +4948,17 @@
             openCodex();
           },
         };
-        window.CampWorld.enter(_rendererRef, saveData, campCallbacks);
+        console.log('[updateCampScreen] Calling CampWorld.enter with renderer:', _rendererRef);
+        try {
+          window.CampWorld.enter(_rendererRef, saveData, campCallbacks);
+          console.log('[updateCampScreen] CampWorld.enter succeeded, isActive:', window.CampWorld.isActive);
+        } catch (e) {
+          console.error('[updateCampScreen] CampWorld.enter failed:', e);
+          // Show 2D fallback if 3D camp fails to initialize
+          if (_campScreenEl) _campScreenEl.classList.remove('camp-3d-mode');
+          const _campBuildingsEl = document.getElementById('camp-buildings-section');
+          if (_campBuildingsEl) _campBuildingsEl.style.display = '';
+        }
         // Force camp-3d-mode so CSS hides all 2D building cards regardless of timing
         if (_campScreenEl) _campScreenEl.classList.add('camp-3d-mode');
       } else {
