@@ -596,15 +596,30 @@
             saveData._buildingMigrationV4 = true;
           }
           // ── Building migration v6 ──
-          // Quest Hall is now pre-built in the new tutorial flow.
-          // Ensure questMission is at level 1 so it is immediately accessible.
+          // Quest Hall must be unlocked but NOT pre-built so the player goes
+          // through the build step in the intro sequence.
           if (!saveData._buildingMigrationV6) {
             var bldQMv6 = saveData.campBuildings && saveData.campBuildings.questMission;
             if (bldQMv6) {
-              bldQMv6.level = 1;
+              bldQMv6.level = 0;
               bldQMv6.unlocked = true;
             }
             saveData._buildingMigrationV6 = true;
+          }
+          // ── Building migration v7 ──
+          // V6 previously set questMission.level = 1 which broke the intro
+          // build sequence for existing saves.  For any save where the player
+          // has NOT yet completed quest_buildQuesthall, reset questMission back
+          // to level 0 (unlocked) so they are required to build it themselves.
+          if (!saveData._buildingMigrationV7) {
+            var bldQMv7 = saveData.campBuildings && saveData.campBuildings.questMission;
+            var tqV7 = saveData.tutorialQuests;
+            var completedV7 = (tqV7 && tqV7.completedQuests) || [];
+            if (bldQMv7 && completedV7.indexOf('quest_buildQuesthall') === -1) {
+              bldQMv7.level = 0;
+              bldQMv7.unlocked = true;
+            }
+            saveData._buildingMigrationV7 = true;
           }
           // ── Building migration v5 ──
           // Inventory is a core free building (isFree + isCore) that should always

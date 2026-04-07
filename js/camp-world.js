@@ -1598,6 +1598,7 @@
     }
     // Unlock Quest Hall so first building can be constructed
     if (sd.campBuildings && sd.campBuildings.questMission) {
+      sd.campBuildings.questMission.level = 0;
       sd.campBuildings.questMission.unlocked = true;
     }
     if (typeof window.CampWorld !== 'undefined' && window.CampWorld.refreshBuildings) {
