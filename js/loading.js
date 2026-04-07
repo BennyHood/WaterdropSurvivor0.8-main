@@ -149,6 +149,17 @@
             console.error('[Loading] updateCampScreen error:', e);
             console.log('[Loading] Continuing with camp display despite error - CampWorld may self-initialize');
           }
+
+          // ── Safety net ────────────────────────────────────────────────────
+          // Regardless of whether updateCampScreen() succeeded, make absolutely sure:
+          // 1. The game-container canvas is visible (not hidden by a prior 2D-mode call).
+          // 2. The camp-screen has camp-3d-mode so the solid background doesn't block the canvas.
+          // These are idempotent and harmless if updateCampScreen already handled them.
+          var _gcEl = document.getElementById('game-container');
+          if (_gcEl) _gcEl.style.display = 'block';
+          var _csEl = document.getElementById('camp-screen');
+          if (_csEl) _csEl.classList.add('camp-3d-mode');
+
           // Two nested rAFs let CampWorld.enter() issue its first render call and give
           // the GPU a chance to draw before we reveal the scene.
           var fadeDone = false;

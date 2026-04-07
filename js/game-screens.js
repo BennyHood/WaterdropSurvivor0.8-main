@@ -757,11 +757,15 @@ function setupMenus() {
     });
   }
 
-  // "Start Run" / "Restart" redirects to sandbox.html for a fresh Engine 2.0 run
+  // "Start Run" — returns to the 3D camp so the player can use the Teleport Portal
+  // (campBoard building) to launch sandbox.html. Sandbox 2.0 is only reachable via camp.
   if (restartBtn && !restartBtn._menuSetup) {
     restartBtn._menuSetup = true;
     restartBtn.addEventListener('click', function() {
-      window.location.href = 'sandbox.html';
+      var gameoverScreen = document.getElementById('gameover-screen');
+      if (gameoverScreen) gameoverScreen.style.display = 'none';
+      window._campFromRun = true;
+      _showCamp();
     });
   }
 }

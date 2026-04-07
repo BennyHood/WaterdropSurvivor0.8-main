@@ -3847,8 +3847,15 @@
       console.log('[Game] Force booting to camp despite init error');
       var mainMenu = document.getElementById('main-menu');
       if (mainMenu) mainMenu.style.display = 'none'; // Keep main menu hidden
-      // _attachFallbackMenuHandlers removed: #main-menu is CSS-hidden so its buttons
-      // are unreachable; recovery is handled by the persistent error overlay above.
+
+      // CRITICAL: start the animate() loop even when init() failed partway through.
+      // If init() threw before reaching the requestAnimationFrame(animate) call at
+      // line ~579 of game-screens.js, the loop was never started. Without the loop,
+      // CampWorld.render() is never called and the 3D camp stays invisible.
+      if (!animationFrameId) {
+        console.log('[Game] Starting animate() loop from catch block (init failed early)');
+        animationFrameId = requestAnimationFrame(animate);
+      }
     }
     } // end THREE check
 

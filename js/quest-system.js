@@ -4778,13 +4778,21 @@
       // This preserves the 2D fallback UI (interactive building cards, pointer-events) if
       // CampWorld fails to load or the renderer is not yet initialised.
       const _campScreenEl = document.getElementById('camp-screen');
-      const canUse3DCamp = !!(window.CampWorld && renderer);
+      // Use window.gameRenderer as a reliable fallback: it is set via window.gameRenderer = renderer
+      // inside init() at the same time as the let renderer variable. This guards against any
+      // edge-case where the let-scoped variable is not in scope here (e.g. init() partial failure).
+      const _rendererRef = (typeof renderer !== 'undefined' ? renderer : null) || window.gameRenderer;
+      const canUse3DCamp = !!(window.CampWorld && _rendererRef);
       if (_campScreenEl) _campScreenEl.classList.toggle('camp-3d-mode', canUse3DCamp);
       // When 3D camp is active, also directly hide the buildings section so there is no
       // flash of 2D cards before the CSS rule takes effect.
       if (canUse3DCamp) {
         const _campBuildingsEl = document.getElementById('camp-buildings-section');
         if (_campBuildingsEl) _campBuildingsEl.style.display = 'none';
+        // Explicitly show the game-container so the Three.js canvas is visible.
+        // (It may have been hidden by a prior 2D-mode camp visit.)
+        const _gameContainerEl = document.getElementById('game-container');
+        if (_gameContainerEl) _gameContainerEl.style.display = 'block';
       }
 
       // First-run tutorial hook: fire after current call stack (by then camp-screen is visible)
@@ -4799,7 +4807,7 @@
       // building IDs to the existing 2D UI functions so interactions still work.
       // Guard: renderer is module-scoped and is null until init() runs; skip 3D mode
       // if renderer is not yet ready (e.g. very first frame before init completes).
-      if (window.CampWorld && renderer) {
+      if (window.CampWorld && _rendererRef) {
         const campCallbacks = {
           questMission:        () => showQuestHall(),
           skillTree:           () => document.getElementById('camp-skills-tab').click(),
@@ -4919,9 +4927,9 @@
             openCodex();
           },
         };
-        window.CampWorld.enter(renderer, saveData, campCallbacks);
+        window.CampWorld.enter(_rendererRef, saveData, campCallbacks);
         // Force camp-3d-mode so CSS hides all 2D building cards regardless of timing
-        document.getElementById('camp-screen').classList.add('camp-3d-mode');
+        if (_campScreenEl) _campScreenEl.classList.add('camp-3d-mode');
       } else {
         // 2D camp mode: hide game container to prevent black canvas showing behind camp UI
         const gameContainer = document.getElementById('game-container');
