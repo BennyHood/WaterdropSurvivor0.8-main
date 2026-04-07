@@ -654,7 +654,8 @@ window.RunEndScreen = (function () {
         setTimeout(function () {
           var el = document.createElement('div');
           el.className = 'res-loot-item';
-          el.textContent = item;
+          el.textContent = item.text;
+          if (item.color) el.style.color = item.color;
           itemsDiv.appendChild(el);
           requestAnimationFrame(function () {
             requestAnimationFrame(function () {
@@ -682,20 +683,21 @@ window.RunEndScreen = (function () {
   }
 
   function _buildLootItems() {
+    var RARITY_COLORS = { Common: '#aaa', Uncommon: '#1EFF00', Rare: '#0070DD', Epic: '#A335EE', Legendary: '#FF8000', Mythic: '#E6CC80' };
     var items = [];
     // Gold
     var goldEarned = (window.saveData && window._resGoldEarned) || 0;
-    if (goldEarned > 0) items.push('💰 +' + goldEarned + ' Gold');
-    // Run loot
+    if (goldEarned > 0) items.push({ text: '💰 +' + goldEarned + ' Gold', color: '#FFD700' });
+    // Run loot — colored by rarity
     if (window.runLootGained && window.runLootGained.length > 0) {
-      var rarityColors = { Common: '#aaa', Uncommon: '#1EFF00', Rare: '#0070DD', Epic: '#A335EE', Legendary: '#FF8000', Mythic: '#E6CC80' };
       window.runLootGained.slice(0, 6).forEach(function (item) {
-        items.push((item.name || 'Item') + ' (' + (item.rarity || 'Common') + ')');
+        var rarity = item.rarity || 'Common';
+        items.push({ text: (item.name || 'Item') + ' (' + rarity + ')', color: RARITY_COLORS[rarity] || '#aaa' });
       });
     }
     // Skill points if any
     if (window.saveData && window.saveData.skillPoints > 0) {
-      items.push('🌟 Skill Points: ' + window.saveData.skillPoints);
+      items.push({ text: '🌟 Skill Points: ' + window.saveData.skillPoints, color: '#FFD700' });
     }
     return items;
   }

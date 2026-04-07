@@ -236,8 +236,8 @@
       const _runStats = window.currentRunStats || {};
       const _activeQuest = (typeof getCurrentQuest === 'function') ? getCurrentQuest() : null;
       const _questCompleted = _activeQuest && saveData.tutorialQuests &&
-        (saveData.tutorialQuests.readyToClaim.includes(_activeQuest.id) ||
-         saveData.tutorialQuests.completedQuests.includes(_activeQuest.id));
+        ((saveData.tutorialQuests.readyToClaim || []).includes(_activeQuest.id) ||
+         (saveData.tutorialQuests.completedQuests || []).includes(_activeQuest.id));
 
       // Store gold earned for loot display
       window._resGoldEarned = goldEarned;
