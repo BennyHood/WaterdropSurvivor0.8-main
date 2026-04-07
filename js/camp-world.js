@@ -1592,14 +1592,14 @@
     sd.resources.wood  = (sd.resources.wood  || 0) + 1;
     sd.resources.stone = (sd.resources.stone || 0) + 1;
     // No gold or skill points - earn through quests
-    if (typeof saveSaveData === 'function') saveSaveData();
-    if (typeof showStatChange === 'function') {
-      showStatChange('🎁 AIDA: "Minimal materials provided. Build the Command Node."', 'rare');
-    }
     // Unlock Quest Hall so first building can be constructed
     if (sd.campBuildings && sd.campBuildings.questMission) {
       sd.campBuildings.questMission.level = 0;
       sd.campBuildings.questMission.unlocked = true;
+    }
+    if (typeof saveSaveData === 'function') saveSaveData();
+    if (typeof showStatChange === 'function') {
+      showStatChange('🎁 AIDA: "Minimal materials provided. Build the Command Node."', 'rare');
     }
     if (typeof window.CampWorld !== 'undefined' && window.CampWorld.refreshBuildings) {
       window.CampWorld.refreshBuildings(sd);

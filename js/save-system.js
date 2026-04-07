@@ -590,10 +590,21 @@
           // existing saves also go through the BUILD step before ENTER is shown.
           // accountBuilding and idleMenu remain at level 1 (UI-only).
           if (!saveData._buildingMigrationV4) {
-            // V4 originally reset questMission to level 0; that behaviour is now
-            // undone by V6 below.  The flag is still set so V4 does not run again
-            // on future loads.
+            // V4 reset questMission to level 0 to enforce the BUILD-flow step.
+            // The flag is still set so V4 does not run again on future loads.
             saveData._buildingMigrationV4 = true;
+          }
+          // ── Building migration v5 ──
+          // Inventory is a core free building (isFree + isCore) that should always
+          // be built and available.  Older saves may have it at level 0 / unlocked
+          // false.  Set it to built so players can access inventory without a quest.
+          if (!saveData._buildingMigrationV5) {
+            var bldInv = saveData.campBuildings && saveData.campBuildings.inventory;
+            if (bldInv && bldInv.level === 0) {
+              bldInv.level = 1;
+              bldInv.unlocked = true;
+            }
+            saveData._buildingMigrationV5 = true;
           }
           // ── Building migration v6 ──
           // Quest Hall must be unlocked but NOT pre-built so the player goes
@@ -608,30 +619,21 @@
           }
           // ── Building migration v7 ──
           // V6 previously set questMission.level = 1 which broke the intro
-          // build sequence for existing saves.  For any save where the player
-          // has NOT yet completed quest_buildQuesthall, reset questMission back
-          // to level 0 (unlocked) so they are required to build it themselves.
+          // build sequence for existing saves.  Reset questMission to level 0
+          // only for saves that are still in the intro flow: the player must
+          // not have completed quest_buildQuesthall AND must not have advanced
+          // past the intro (firstRunDeath not yet completed).
           if (!saveData._buildingMigrationV7) {
             var bldQMv7 = saveData.campBuildings && saveData.campBuildings.questMission;
             var tqV7 = saveData.tutorialQuests;
             var completedV7 = (tqV7 && tqV7.completedQuests) || [];
-            if (bldQMv7 && completedV7.indexOf('quest_buildQuesthall') === -1) {
+            var hasBuildQuesthallV7 = completedV7.indexOf('quest_buildQuesthall') !== -1;
+            var hasAdvancedIntroProgressV7 = completedV7.indexOf('firstRunDeath') !== -1;
+            if (bldQMv7 && !hasBuildQuesthallV7 && !hasAdvancedIntroProgressV7) {
               bldQMv7.level = 0;
               bldQMv7.unlocked = true;
             }
             saveData._buildingMigrationV7 = true;
-          }
-          // ── Building migration v5 ──
-          // Inventory is a core free building (isFree + isCore) that should always
-          // be built and available.  Older saves may have it at level 0 / unlocked
-          // false.  Set it to built so players can access inventory without a quest.
-          if (!saveData._buildingMigrationV5) {
-            var bldInv = saveData.campBuildings && saveData.campBuildings.inventory;
-            if (bldInv && bldInv.level === 0) {
-              bldInv.level = 1;
-              bldInv.unlocked = true;
-            }
-            saveData._buildingMigrationV5 = true;
           }
 
           // ── Quest migration: questGather0_materials → questForge0_unlock ──
