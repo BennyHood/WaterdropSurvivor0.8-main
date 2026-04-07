@@ -273,8 +273,8 @@
         return;
       }
 
-      // Suppress floating speech bubbles while cinematic is active
-      if (typeof window._suppressAidaBubbles !== 'undefined') window._suppressAidaBubbles = true;
+      // Suppress floating speech bubbles while cinematic is active — set unconditionally.
+      window._suppressAidaBubbles = true;
 
       const wasGameActive =
         typeof isGameActive !== 'undefined' &&
@@ -446,7 +446,7 @@
         overlay.style.animation = 'cinematicFadeOut 0.4s ease-in forwards';
         setTimeout(() => {
           if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-          if (typeof window._suppressAidaBubbles !== 'undefined') window._suppressAidaBubbles = false;
+          window._suppressAidaBubbles = false;
           if (wasGameActive && typeof setGamePaused === 'function') setGamePaused(false);
           if (onClose) onClose();
         }, 380);

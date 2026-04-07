@@ -462,8 +462,15 @@
       startY    = pt.y;
       startLeft = rect.left;
       startTop  = rect.top;
-      // Clear any CSS centering transform so pixel position is absolute
-      el.style.transform = '';
+      // Clear any CSS centering transform so pixel position is absolute;
+      // preserve any user-set scale so dragging doesn't lose it.
+      const existingScale = el._uiCalScale !== undefined ? el._uiCalScale : 1;
+      if (existingScale !== 1) {
+        el.style.transform = 'scale(' + existingScale + ')';
+        el.style.transformOrigin = 'top left';
+      } else {
+        el.style.transform = '';
+      }
       el.style.cursor = 'grabbing';
       window.addEventListener('mousemove', onMove);
       window.addEventListener('mouseup',   onUp);
@@ -736,11 +743,15 @@
     }
     if (entry.width)  el.style.width  = entry.width;
     if (entry.height) el.style.height = entry.height;
-    // Apply saved scale transform
-    if (entry.scale && entry.scale !== 1) {
+    // Apply saved scale transform, or clear any prior scale when omitted/default
+    if (entry.scale !== undefined && entry.scale !== null && entry.scale !== 1) {
       el.style.transform = 'scale(' + entry.scale + ')';
       el.style.transformOrigin = 'top left';
       el._uiCalScale = entry.scale;
+    } else {
+      el.style.transform = '';
+      el.style.transformOrigin = '';
+      el._uiCalScale = 1;
     }
     // Ensure position is fixed so saved coords work regardless of which
     // anchoring side (left/top/right/bottom) was saved.
