@@ -104,101 +104,13 @@
         const loadingScreen = document.getElementById('loading-screen');
         if (!loadingScreen) return;
 
-        // Check for return-from-sandbox flag. When set, we skip the main-menu even
-        // if init had an error, because camp-world.js can warm up independently.
-        var returnFromSandbox = false;
-        try {
-          returnFromSandbox = !!localStorage.getItem('wds_fromSandbox');
-          if (returnFromSandbox) localStorage.removeItem('wds_fromSandbox');
-        } catch (e) { /* localStorage unavailable — ignore */ }
+        // Clear return-from-sandbox flag so it doesn't persist across reloads
+        try { localStorage.removeItem('wds_fromSandbox'); } catch (e) { /* ignore */ }
 
-        // Log the state for debugging
-        const initOk = window.gameModuleReady && !window.gameInitError;
-        console.log('[Loading] Force booting to 3D camp — initOk:', initOk,
-          'gameModuleReady:', window.gameModuleReady,
-          'initError:', !!window.gameInitError, 'returnFromSandbox:', returnFromSandbox);
-
-        // ── FORCE CAMP BOOT: show camp screen WHILE loading screen is still fully opaque ──
-        // This prevents any flash of the raw THREE.js scene or 2D building cards.
-        var campScreen = document.getElementById('camp-screen');
-        var mainMenuEl = document.getElementById('main-menu');
-
-        // Force hide main menu permanently
-        if (mainMenuEl) mainMenuEl.style.display = 'none';
-
-        // Show camp screen (still hidden behind the opaque loading screen)
-        if (campScreen) {
-          campScreen.classList.remove('camp-subsection-active');
-          campScreen.style.display = 'flex';
-        }
-
-        // Helper: fade out the loading screen after CampWorld has rendered its first frame
-        function fadeLoadingScreen() {
-          loadingScreen.classList.add('fade-out');
-          setTimeout(function() { loadingScreen.style.display = 'none'; }, 500);
-        }
-
-        // Helper: call updateCampScreen, then wait 2 rAFs so CampWorld renders before revealing.
-        // A setTimeout fallback guarantees the fade even when rAF is throttled (background tabs,
-        // slow start-up, power-saving mode, etc.).
-        function bootCamp() {
-          try {
-            window.updateCampScreen();
-            console.log('[Loading] CampWorld initialized successfully');
-          } catch (e) {
-            console.error('[Loading] updateCampScreen error:', e);
-            console.log('[Loading] Continuing with camp display despite error - CampWorld may self-initialize');
-          }
-
-          // ── Safety net ────────────────────────────────────────────────────
-          // Only force 3D camp UI state when the 3D camp is actually available.
-          // Otherwise, preserve the intended 2D fallback UI instead of revealing
-          // an empty/black canvas.
-          var canUse3DCamp = !!(window.CampWorld && window.gameRenderer);
-          if (canUse3DCamp) {
-            var _gcEl = document.getElementById('game-container');
-            if (_gcEl) _gcEl.style.display = 'block';
-            var _csEl = document.getElementById('camp-screen');
-            if (_csEl) _csEl.classList.add('camp-3d-mode');
-          } else {
-            console.warn('[Loading] 3D camp not ready; preserving fallback camp UI');
-          }
-
-          // Two nested rAFs let CampWorld.enter() issue its first render call and give
-          // the GPU a chance to draw before we reveal the scene.
-          var fadeDone = false;
-          function safeFade() {
-            if (fadeDone) return;
-            fadeDone = true;
-            fadeLoadingScreen();
-          }
-          requestAnimationFrame(function() {
-            requestAnimationFrame(safeFade);
-          });
-          // Fallback: if rAF is paused (background tab, throttled browser), fade after 2s.
-          setTimeout(safeFade, 2000);
-        }
-
-        // Initialize camp - attempt even if init wasn't perfect
+        // Hide loading screen unconditionally
+        loadingScreen.style.display = 'none';
         if (typeof window.updateCampScreen === 'function') {
-          bootCamp();
-        } else {
-          console.warn('[Loading] updateCampScreen not yet available - polling until ready (max 10s)');
-          // Poll for updateCampScreen to become available (100 × 100ms = 10s max)
-          var pollAttempts = 0;
-          var maxPollAttempts = 100;
-          var campPollInterval = setInterval(function() {
-            pollAttempts++;
-            if (typeof window.updateCampScreen === 'function') {
-              clearInterval(campPollInterval);
-              console.log('[Loading] updateCampScreen available after ' + pollAttempts + ' polls — initializing camp');
-              bootCamp();
-            } else if (pollAttempts >= maxPollAttempts) {
-              clearInterval(campPollInterval);
-              console.warn('[Loading] updateCampScreen never became available after 10s — fading anyway');
-              fadeLoadingScreen();
-            }
-          }, 100);
+            window.updateCampScreen();
         }
       }
     })();

@@ -5526,6 +5526,12 @@
       // Update gold display (not on main menu per requirements - only in progression/camp/death)
       const menuGold = document.getElementById('menu-gold');
       if (menuGold) menuGold.textContent = `GOLD: ${saveData.gold}`;
+
+      // Fallback: ensure CampWorld is entered even if the renderer ref was unavailable earlier
+      if (window.CampWorld && !window.CampWorld.isActive) {
+          window.CampWorld.enter();
+          document.getElementById('camp-screen').classList.add('camp-3d-mode');
+      }
     }
 
 
