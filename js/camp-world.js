@@ -259,6 +259,7 @@
   // ──────────────────────────────────────────────────────────
   function _buildScene() {
     const THREE = T();
+    try {
     // Reset building mesh registry so stale refs from a previous failed build don't linger
     _buildingMeshes = {};
     // Disconnect all MutationObservers from the previous scene build to prevent leaks
@@ -341,6 +342,10 @@
     const aspect = window.innerWidth / window.innerHeight;
     _campCamera = new THREE.PerspectiveCamera(42, aspect, 0.1, 200);
     _updateCamera(0);
+    } catch (err) {
+      console.error('[CampWorld] _buildScene() error:', err);
+      throw err; // re-throw so warmUp/enter can reset _campScene for a clean retry
+    }
   }
 
   // ── Ground plane with dirt paths ────────────────────────

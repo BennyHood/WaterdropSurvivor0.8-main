@@ -127,18 +127,16 @@ function init() {
   // createWorld();
   // cacheAnimatedObjects();
 
-  // Create player safely for index.html (3D Camp Hub mode).
-  // Player mesh is created but NOT added to scene to avoid null reference issues
-  // since the combat world doesn't exist. CampWorld handles its own scene rendering.
-  try {
-    player = new Player();
-    player.mesh.position.set(12, 0.5, 0);
-    // DO NOT add player.mesh to scene here - CampWorld manages its own entities
-    console.log('[Init] Player created for camp mode (not added to scene)');
-  } catch (e) {
-    console.warn('[Init] Player creation skipped for camp mode:', e.message);
-    player = null; // Set to null to prevent undefined errors
-  }
+  // Player creation disabled for index.html (3D Camp Hub mode).
+  // CampWorld handles its own character model; Sandbox creates its own player.
+  // try {
+  //   player = new Player();
+  //   player.mesh.position.set(12, 0.5, 0);
+  //   console.log('[Init] Player created for camp mode (not added to scene)');
+  // } catch (e) {
+  //   console.warn('[Init] Player creation skipped for camp mode:', e.message);
+  //   player = null;
+  // }
 
   try {
     initializeGear();
