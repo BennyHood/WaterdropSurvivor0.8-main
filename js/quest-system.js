@@ -4952,7 +4952,7 @@
         };
         console.log('[updateCampScreen] Calling CampWorld.enter with renderer:', _rendererRef);
         try {
-          window.CampWorld.enter(_rendererRef, saveData, campCallbacks);
+          window.CampWorld.enter(_rendererRef, typeof saveData !== 'undefined' ? saveData : {});
           console.log('[updateCampScreen] CampWorld.enter succeeded, isActive:', window.CampWorld.isActive);
         } catch (e) {
           console.error('[updateCampScreen] CampWorld.enter failed:', e);
@@ -4962,7 +4962,10 @@
           if (_campBuildingsEl) _campBuildingsEl.style.display = '';
         }
         // Force camp-3d-mode so CSS hides all 2D building cards regardless of timing
-        if (_campScreenEl) _campScreenEl.classList.add('camp-3d-mode');
+        if (_campScreenEl) {
+          _campScreenEl.classList.add('camp-3d-mode');
+          _campScreenEl.style.display = 'flex';
+        }
       } else {
         // 2D camp mode: hide game container to prevent black canvas showing behind camp UI
         const gameContainer = document.getElementById('game-container');
