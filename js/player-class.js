@@ -451,6 +451,10 @@
         this._breathScale = 1.0; // Multiplier from breathing animation, applied on top of spring-damper
 
         // ─── New Visual Physics Systems — State Variables ──────────────────────
+        // Physics collider: the authoritative XZ position used by the engine.
+        // The visual mesh lerps toward this each frame so fluid/animation stays smooth.
+        this._physX = 0;
+        this._physZ = 0;
         // System 1 - Membrane
         this._membrane = null;
         this._membraneWobbleX = 0; this._membraneWobbleZ = 0;
@@ -665,8 +669,8 @@
           // Dash distance uses the upgradeable dashDistance variable
           const dashSpeed = (dashDistance / this.dashDuration); // units per second
           const speed = Math.sin(t * Math.PI) * dashSpeed; // Slow-Fast-Slow curve
-          this.mesh.position.x += this.dashVec.x * speed * dt;
-          this.mesh.position.z += this.dashVec.z * speed * dt;
+          this._physX += this.dashVec.x * speed * dt;
+          this._physZ += this.dashVec.z * speed * dt;
           
           // Enhanced splash effect trail during dash - MORE PARTICLES
           if (Math.random() < 0.7) { // Increased from 0.5
@@ -853,24 +857,43 @@
           }
           this.slideAmount = Math.max(0, this.slideAmount - dt * 3);
           
-          // Apply velocity with inertia
-          this.mesh.position.x += this.velocity.x;
-          this.mesh.position.z += this.velocity.z;
-          
+          // ── Physics collider: apply velocity and all collision to _physX/_physZ ──
+          // The visual mesh.position.x/z follows _physX/_physZ via lerp at the end
+          // of this update so the fluid-sloshing animation is never snapped/jittered.
+
+          // In sandbox mode _movePlayer() is the movement authority; just sync the
+          // collider from whatever position it wrote so our collision below starts
+          // from the right place.  In non-sandbox mode (main game-loop) _physX/_physZ
+          // IS the primary physics source and velocity drives it directly.
+          if (!window._engine2SandboxMode) {
+            this._physX += this.velocity.x;
+            this._physZ += this.velocity.z;
+          } else {
+            // Sandbox: seed collider from current mesh position only if the sandbox
+            // physics has not yet written a value this frame (i.e. first tick).
+            // _movePlayer writes _physX/_physZ every frame it has movement, so this
+            // branch is only a safety net for the very first idle frame.
+            if (this._physX === 0 && this._physZ === 0 &&
+                (this.mesh.position.x !== 0 || this.mesh.position.z !== 0)) {
+              this._physX = this.mesh.position.x;
+              this._physZ = this.mesh.position.z;
+            }
+          }
+
           // Solid collision with map objects (trees, barrels, crates) — player bounces off
           if (window.destructibleProps) {
             for (let prop of window.destructibleProps) {
               if (prop.destroyed) continue;
               const collisionRadius = prop.type === 'tree' ? 1.0 : 0.7;
-              const pdx = this.mesh.position.x - prop.mesh.position.x;
-              const pdz = this.mesh.position.z - prop.mesh.position.z;
+              const pdx = this._physX - prop.mesh.position.x;
+              const pdz = this._physZ - prop.mesh.position.z;
               const pdist = Math.sqrt(pdx * pdx + pdz * pdz);
               if (pdist < collisionRadius && pdist > 0.001) {
-                // Push player out of object
+                // Push physics collider out of object
                 const pushX = (pdx / pdist) * collisionRadius;
                 const pushZ = (pdz / pdist) * collisionRadius;
-                this.mesh.position.x = prop.mesh.position.x + pushX;
-                this.mesh.position.z = prop.mesh.position.z + pushZ;
+                this._physX = prop.mesh.position.x + pushX;
+                this._physZ = prop.mesh.position.z + pushZ;
                 // Kill inward velocity
                 const dot = this.velocity.x * pdx + this.velocity.z * pdz;
                 if (dot < 0) {
@@ -889,12 +912,12 @@
           if (window.breakableFences) {
             for (let fence of window.breakableFences) {
               if (!fence.userData || !fence.userData.isFence || fence.userData.hp <= 0) continue;
-              const fdx = this.mesh.position.x - fence.position.x;
-              const fdz = this.mesh.position.z - fence.position.z;
+              const fdx = this._physX - fence.position.x;
+              const fdz = this._physZ - fence.position.z;
               const fdist = Math.sqrt(fdx * fdx + fdz * fdz);
               if (fdist < 0.6 && fdist > 0.001) {
-                this.mesh.position.x = fence.position.x + (fdx / fdist) * 0.6;
-                this.mesh.position.z = fence.position.z + (fdz / fdist) * 0.6;
+                this._physX = fence.position.x + (fdx / fdist) * 0.6;
+                this._physZ = fence.position.z + (fdz / fdist) * 0.6;
                 // Wobble fence on collision
                 if (!fence.userData._wobbleTime) fence.userData._wobbleTime = 0;
                 fence.userData._wobbleTime = 0.8;
@@ -914,13 +937,13 @@
               // Collision radius: use node's defined radius scaled by NODE_COLLISION_RADIUS_SCALE
               const nodeRadius = window.GameHarvesting._nodeRadius ? window.GameHarvesting._nodeRadius(node.type) : 0.9;
               const collRadius = nodeRadius;
-              const ndx = this.mesh.position.x - node.mesh.position.x;
-              const ndz = this.mesh.position.z - node.mesh.position.z;
+              const ndx = this._physX - node.mesh.position.x;
+              const ndz = this._physZ - node.mesh.position.z;
               const ndist = Math.sqrt(ndx * ndx + ndz * ndz);
               if (ndist < collRadius && ndist > 0.001) {
-                // Push player out
-                this.mesh.position.x = node.mesh.position.x + (ndx / ndist) * collRadius;
-                this.mesh.position.z = node.mesh.position.z + (ndz / ndist) * collRadius;
+                // Push physics collider out
+                this._physX = node.mesh.position.x + (ndx / ndist) * collRadius;
+                this._physZ = node.mesh.position.z + (ndz / ndist) * collRadius;
                 const dot = this.velocity.x * ndx + this.velocity.z * ndz;
                 if (dot < 0) {
                   this.velocity.x -= (dot / (ndist * ndist)) * ndx;
@@ -978,8 +1001,14 @@
             this.bankLean += (0 - this.bankLean) * settleDt;
           }
           
-          this.mesh.rotation.x = this.forwardLean;
-          this.mesh.rotation.z = this.bankLean;
+          // ── Apply lean to visual mesh (guarded in sandbox mode) ─────────────
+          // In sandbox mode _movePlayer() owns mesh.rotation.x/z (lean) via its own
+          // lerp.  Overwriting here with values derived from the dormant joystickLeft
+          // system would zero-out the lean every frame and cause visible jitter.
+          if (!window._engine2SandboxMode) {
+            this.mesh.rotation.x = this.forwardLean;
+            this.mesh.rotation.z = this.bankLean;
+          }
           
           // Rotation/Aiming with RIGHT stick (independent of movement)
           if (joystickRight.active) {
@@ -1048,7 +1077,9 @@
               let angleDiff = targetAngle - this.mesh.rotation.y;
               while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
               while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-              this.mesh.rotation.y += angleDiff * Math.min(10 * dt, 1);
+              if (!window._engine2SandboxMode) {
+                this.mesh.rotation.y += angleDiff * Math.min(10 * dt, 1);
+              }
             }
           } else if (joystickLeft.active) {
             // If no right stick input and no auto-aim, rotate to face movement direction
@@ -1062,7 +1093,9 @@
               while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
               while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
               // Lerp rotation smoothly
-              this.mesh.rotation.y += angleDiff * Math.min(rotationSpeed * dt, 1);
+              if (!window._engine2SandboxMode) {
+                this.mesh.rotation.y += angleDiff * Math.min(rotationSpeed * dt, 1);
+              }
             }
           }
         }
@@ -1758,8 +1791,18 @@
         camera.lookAt(this.mesh.position);
 
         // Bounds (Compact map is 240x240, from -120 to 120)
-        this.mesh.position.x = Math.max(-120, Math.min(120, this.mesh.position.x));
-        this.mesh.position.z = Math.max(-120, Math.min(120, this.mesh.position.z));
+        // Clamp on the physics collider, NOT the visual mesh — the mesh follows via lerp.
+        this._physX = Math.max(-120, Math.min(120, this._physX));
+        this._physZ = Math.max(-120, Math.min(120, this._physZ));
+
+        // ── Lerp visual mesh.position.x/z toward physics collider ────────────────
+        // A lerp factor of 45×dt gives <1 frame of visual lag at 60 fps while
+        // completely eliminating snap jitter from collision resolution.
+        // mesh.position.y is intentionally excluded — it is owned by the procedural
+        // bounce/spawn animation and must not be snapped by the physics collider.
+        const _physLerp = Math.min(dt * 45, 1.0);
+        this.mesh.position.x += (this._physX - this.mesh.position.x) * _physLerp;
+        this.mesh.position.z += (this._physZ - this.mesh.position.z) * _physLerp;
 
         // Persist previous velocity for next frame's fluid inertia calculation (System 2)
         try {
