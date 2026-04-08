@@ -1,8 +1,8 @@
 # Survivor bullethell rpg game with simulators
 
-**Version 0.5.2 alpha — playable — ENGINE 2.0**
+**Version 0.810 alpha — somewhat  playable — ENGINE 2.0**
 
-A browser-based THREE.js survivor/roguelike set in an alien-contaminated lake. You are a sentient waterdrop trying to find your way back to the collective — guided (or manipulated?) by an AI entity named A.I.D.A.
+A browser-based THREE.js survivor/roguelike rpg bullethell  set in an alien-contaminated lake. You are a sentient waterdrop trying to find your way back to the collective — guided (or manipulated?) by an AI entity named A.I.D.A.
 
 ---
 
