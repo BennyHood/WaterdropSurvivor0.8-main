@@ -192,13 +192,15 @@
         stats.weaponDamage = (stats.weaponDamage || 0) + 0.03 * wsLvl;
       }
 
-      // Shrine: Artifact Shrine — artifact slots + critDamage + voidLifesteal per level
+      // Shrine: Artifact Shrine — artifact slots + critDamage + voidLifesteal + hpRegen per level
       if (bldgs.shrine && bldgs.shrine.level > 0) {
         var shLvl = bldgs.shrine.level;
         // +10% crit damage per level
         stats.critDamage = (stats.critDamage || 1.0) + 0.1 * shLvl;
         // +2% void lifesteal per level
         stats.voidLifesteal = (stats.voidLifesteal || 0) + 0.02 * shLvl;
+        // +0.5 HP regen per second per level
+        stats.hpRegenPerSecond = (stats.hpRegenPerSecond || 0) + 0.5 * shLvl;
         // Expose unlocked artifact slot count for the UI
         stats.artifactSlots = shLvl;
       }

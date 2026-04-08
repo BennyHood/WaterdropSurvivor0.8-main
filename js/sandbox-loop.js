@@ -5339,8 +5339,8 @@
       window._acquireFlash(scene, DEFAULT_FLASH_COLOR, DEFAULT_FLASH_INTENSITY, DEFAULT_FLASH_RADIUS, _tmpV3, DEFAULT_FLASH_DURATION_MS);
     }
 
-    // Rotate player mesh to face the aim target + apply recoil
-    player.mesh.rotation.y = Math.atan2(tx - px, tz - pz);
+    // Rotate player mesh toward the aim target — use lerp to keep fluid animation smooth
+    player.mesh.rotation.y = _lerp(player.mesh.rotation.y, Math.atan2(tx - px, tz - pz), 0.35);
 
     // Update gun model position/rotation (if attached)
     _updateGunModel(tx, tz);
@@ -8082,6 +8082,9 @@
     } catch (e) {
       _showError('Boot error: ' + (e && e.message ? e.message : String(e)));
       console.error('[SandboxLoop] _boot error:', e);
+      // Failsafe: ensure the loading screen is always dismissed even on crash
+      var _ls = document.getElementById('loading-screen');
+      if (_ls) { _ls.style.opacity = '0'; _ls.style.pointerEvents = 'none'; _ls.style.display = 'none'; }
       window.gameModuleReady = true;
     }
   }
