@@ -7891,8 +7891,8 @@
 
     // Failsafe: if boot takes > 10 s (silent error, missing dep, etc.) force-clear the
     // loading screen so the UI never hard-locks.  Cancelled below once boot succeeds.
-    var _bootFailsafeTimer = setTimeout(function () {
-      var _fls = document.getElementById('loading-screen');
+    const _bootFailsafeTimer = setTimeout(function () {
+      const _fls = document.getElementById('loading-screen');
       if (_fls) { _fls.style.opacity = '0'; _fls.style.pointerEvents = 'none'; _fls.style.display = 'none'; }
       window.gameModuleReady = true;
       console.warn('[SandboxLoop] ⚠ Boot failsafe triggered — loading screen force-cleared after 10 s.');
