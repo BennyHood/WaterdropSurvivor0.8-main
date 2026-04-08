@@ -5339,9 +5339,13 @@
       window._acquireFlash(scene, DEFAULT_FLASH_COLOR, DEFAULT_FLASH_INTENSITY, DEFAULT_FLASH_RADIUS, _tmpV3, DEFAULT_FLASH_DURATION_MS);
     }
 
-    // Smoothly rotate toward the firing angle — lerp so fluid sloshing isn't disrupted
-    // by a hard snap.  The per-frame aim-update in _movePlayer() will maintain the heading.
-    player.mesh.rotation.y = _lerp(player.mesh.rotation.y, Math.atan2(tx - px, tz - pz), 0.35);
+    // Smoothly rotate toward the firing angle using shortest-arc interpolation so the
+    // player never spins the long way when rotation.y crosses the -π/π boundary.
+    const targetYaw = Math.atan2(tx - px, tz - pz);
+    const currentYaw = player.mesh.rotation.y;
+    let yawDelta = targetYaw - currentYaw;
+    yawDelta = ((yawDelta + Math.PI) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2) - Math.PI;
+    player.mesh.rotation.y = currentYaw + yawDelta * 0.35;
 
     // Update gun model position/rotation (if attached)
     _updateGunModel(tx, tz);
@@ -6438,13 +6442,19 @@
     // ── Continuous 360° smooth aim rotation ────────────────────────────────────
     // Update player facing direction every frame so the model follows the right
     // joystick (or mouse) even when not actively firing.
+    // Shortest-arc interpolation avoids spinning the long way when crossing the
+    // -π/π boundary during continuous 360° rotation.
     const px2 = player.mesh.position.x, pz2 = player.mesh.position.z;
     if (_aimJoy.active && (_aimJoy.dx !== 0 || _aimJoy.dz !== 0)) {
       const aimAngle = Math.atan2(_aimJoy.dx, _aimJoy.dz);
-      player.mesh.rotation.y = _lerp(player.mesh.rotation.y, aimAngle, 0.25);
+      let _aimDelta = aimAngle - player.mesh.rotation.y;
+      _aimDelta = ((_aimDelta + Math.PI) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2) - Math.PI;
+      player.mesh.rotation.y += _aimDelta * 0.25;
     } else if (_mouse && (_mouse.worldX !== 0 || _mouse.worldZ !== 0)) {
       const mAngle = Math.atan2(_mouse.worldX - px2, _mouse.worldZ - pz2);
-      player.mesh.rotation.y = _lerp(player.mesh.rotation.y, mAngle, 0.25);
+      let _mDelta = mAngle - player.mesh.rotation.y;
+      _mDelta = ((_mDelta + Math.PI) % (Math.PI * 2) + (Math.PI * 2)) % (Math.PI * 2) - Math.PI;
+      player.mesh.rotation.y += _mDelta * 0.25;
     }
 
     // Camera follow — reuse _camTarget to avoid per-frame Vector3 allocation
@@ -7892,9 +7902,12 @@
     // Failsafe: if boot takes > 10 s (silent error, missing dep, etc.) force-clear the
     // loading screen so the UI never hard-locks.  Cancelled below once boot succeeds.
     const _bootFailsafeTimer = setTimeout(function () {
+      if (typeof _showError === 'function') {
+        _showError('Boot timed out');
+      }
       const _fls = document.getElementById('loading-screen');
       if (_fls) { _fls.style.opacity = '0'; _fls.style.pointerEvents = 'none'; _fls.style.display = 'none'; }
-      window.gameModuleReady = true;
+      window.gameModuleReadyTimedOut = true;
       console.warn('[SandboxLoop] ⚠ Boot failsafe triggered — loading screen force-cleared after 10 s.');
     }, 10000);
 
