@@ -6353,17 +6353,10 @@
       if (Math.abs(_playerVz) < 0.02) _playerVz = 0;
     }
 
-    // 3. Apply velocity to physics collider — player._physX/_physZ is the authoritative
-    // XZ position for all collision and movement.  The visual mesh follows via lerp
-    // inside player.update() so the fluid-sloshing animation stays smooth.
+    // 3. Apply velocity to position
     if (_playerVx !== 0 || _playerVz !== 0) {
-      // Seed collider from current mesh position the very first frame it is unset.
-      if (player._physX === undefined || player._physX === null) {
-        player._physX = player.mesh.position.x;
-        player._physZ = player.mesh.position.z;
-      }
-      var _newPx = _clamp((player._physX || 0) + _playerVx * dt, -ARENA_RADIUS, ARENA_RADIUS);
-      var _newPz = _clamp((player._physZ || 0) + _playerVz * dt, -ARENA_RADIUS, ARENA_RADIUS);
+      var _newPx = _clamp(player.mesh.position.x + _playerVx * dt, -ARENA_RADIUS, ARENA_RADIUS);
+      var _newPz = _clamp(player.mesh.position.z + _playerVz * dt, -ARENA_RADIUS, ARENA_RADIUS);
 
       // World object collision (trees, rocks, fences) + lake detection
       if (window.WorldObjects && typeof WorldObjects.checkCollision === 'function') {
@@ -6380,7 +6373,7 @@
           // Speed reduction
           _playerVx *= WorldObjects.LAKE_SLOW_FACTOR;
           _playerVz *= WorldObjects.LAKE_SLOW_FACTOR;
-          // Sink player based on depth — y is visual-only so write to mesh directly
+          // Sink player based on depth
           if (!_spawnIntroActive) {
             player._swimBobPhase = (player._swimBobPhase || 0) + dt * 2.5;
             player.mesh.position.y = WorldObjects.LAKE_SINK_Y + Math.sin(player._swimBobPhase) * 0.04;
@@ -6390,14 +6383,8 @@
         }
       }
 
-      // Write final clamped position to physics collider only.
-      // player.update() will lerp mesh.position.x/z toward these each frame.
-      player._physX = _clamp(_newPx, -ARENA_RADIUS, ARENA_RADIUS);
-      player._physZ = _clamp(_newPz, -ARENA_RADIUS, ARENA_RADIUS);
-    } else if (player._physX === undefined || player._physX === null) {
-      // Idle first frame — seed collider from mesh position so lerp starts at rest.
-      player._physX = player.mesh.position.x;
-      player._physZ = player.mesh.position.z;
+      player.mesh.position.x = _clamp(_newPx, -ARENA_RADIUS, ARENA_RADIUS);
+      player.mesh.position.z = _clamp(_newPz, -ARENA_RADIUS, ARENA_RADIUS);
     }
 
     // 4. Visual effects — use actual velocity magnitude, not raw input, for smooth transitions
@@ -7904,19 +7891,6 @@
     window._engine2SandboxMode = true;
     console.log('[🎮 SandboxLoop] ✓ Sandbox mode flag set');
 
-    // ── Hide loading screen immediately — must happen before any throwable init ──
-    // Placed outside the try/catch so it runs even if a subsequent init step crashes.
-    (function () {
-      try {
-        var _ls = document.getElementById('loading-screen');
-        if (_ls) {
-          _ls.style.opacity = '0';
-          _ls.style.pointerEvents = 'none';
-          setTimeout(function () { if (_ls.parentNode) _ls.style.display = 'none'; }, 450);
-        }
-      } catch (_e) {}
-    }());
-
     try {
       // Allow showUpgradeModal to run (main.js defaults isGameActive=false for menu).
       // Use setter functions to avoid readonly property crash on iOS/Safari.
@@ -7925,6 +7899,15 @@
       window.isGameActive = true;
       window.isGameOver = false;
       console.log('[🎮 SandboxLoop] ✓ Game state activated');
+
+      // Hide loading screen
+      const ls = document.getElementById('loading-screen');
+      if (ls) {
+        ls.style.opacity = '0';
+        ls.style.pointerEvents = 'none';
+        setTimeout(function () { ls.style.display = 'none'; }, 400);
+      }
+      console.log('[🎮 SandboxLoop] ✓ Loading screen hidden');
 
       // Show the ui-layer (HUD)
       const uiLayer = document.getElementById('ui-layer');
@@ -8099,40 +8082,9 @@
     } catch (e) {
       _showError('Boot error: ' + (e && e.message ? e.message : String(e)));
       console.error('[SandboxLoop] _boot error:', e);
-      // Failsafe: ensure loading screen hides even on a fatal boot error so the
-      // player is never stuck on a black screen with no feedback.
-      try {
-        var _errLs = document.getElementById('loading-screen');
-        if (_errLs) {
-          _errLs.style.opacity = '0';
-          _errLs.style.pointerEvents = 'none';
-          setTimeout(function () { _errLs.style.display = 'none'; }, 400);
-        }
-      } catch (_) {}
       window.gameModuleReady = true;
-      // Attempt to start the animation loop so at least the scene renders.
-      // _animate() has its own per-frame try/catch and will surface further errors.
-      if (renderer && scene && camera && _rafId === null) {
-        try { _lastTime = performance.now(); _rafId = requestAnimationFrame(_animate); } catch (_) {}
-      }
     }
   }
-
-  // ── Hard failsafe: if _boot() somehow never ran (unexpected parse/runtime error
-  // in a dependency that blocked the DOMContentLoaded path), forcibly hide the
-  // loading screen and set gameModuleReady after 7 seconds so the player is never
-  // permanently stuck on a black screen.
-  setTimeout(function () {
-    try {
-      var _fl = document.getElementById('loading-screen');
-      if (_fl && window.getComputedStyle(_fl).display !== 'none') {
-        _fl.style.opacity = '0';
-        _fl.style.pointerEvents = 'none';
-        setTimeout(function () { _fl.style.display = 'none'; }, 450);
-      }
-      if (!window.gameModuleReady) window.gameModuleReady = true;
-    } catch (_) {}
-  }, 7000);
 
   // Boot when DOM is ready
   if (document.readyState === 'loading') {
