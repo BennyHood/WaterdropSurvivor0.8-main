@@ -212,3 +212,21 @@ function showYouDiedBanner(duration) {
   }, duration);
 }
 
+// ── ProfileUI: top-left profile display ──────────────────────────────────────
+const ProfileUI = {
+  create() {
+    /* waterdrop guy picture with customizable frame */
+    /* level number, rank, account login, progress bar to next level with exact % text */
+    /* rank-up gives visual rewards and new frames */
+  }
+};
+window.ProfileUI = ProfileUI;
+
+// ── SettingsMenu: full in-game settings ──────────────────────────────────────
+const SettingsMenu = {
+  open() {
+    /* resolution, graphics presets, shadows (ring on low → full cascaded on high), post-processing motion blur strength, bloom, vignette, anti-aliasing, sound sliders, fog density, draw distance – all saved and applied instantly */
+  }
+};
+window.SettingsMenu = SettingsMenu;
+
