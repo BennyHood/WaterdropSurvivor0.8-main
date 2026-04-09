@@ -244,12 +244,6 @@
       if (!pos) return;
       if (window.BloodSystem && typeof BloodSystem.emitWaterBurst === 'function') {
         BloodSystem.emitWaterBurst({ x: pos.x, y: pos.y, z: pos.z }, 1, { spreadXZ: 0.3, spreadY: 0.2 });
-      } else if (window.BloodSimulatorV21) {
-        window.BloodSimulatorV21.rawBurst(pos.x, pos.y, pos.z, 1, {
-          spreadXZ: 0.3,
-          spreadY: 0.2,
-          color: 0x00bfff
-        });
       }
     };
   }
@@ -279,7 +273,6 @@
       // Reset blood/gore systems after a short delay so the death scene stays visible briefly
       setTimeout(function () {
         if (window.BloodV2 && typeof window.BloodV2.reset === 'function') window.BloodV2.reset();
-        if (window.BloodSimulatorV21 && typeof window.BloodSimulatorV21.reset === 'function') window.BloodSimulatorV21.reset();
         if (window.GoreSim && typeof window.GoreSim.reset === 'function') window.GoreSim.reset();
         if (window.SlimePool && typeof window.SlimePool.reset === 'function') window.SlimePool.reset();
         if (window.WaveSpawner && typeof window.WaveSpawner.reset === 'function') window.WaveSpawner.reset();
@@ -1682,19 +1675,7 @@
       }
 
       // Heartbeat blood pumping: sin-wave drives burst rate
-      if (window.BloodSimulatorV21) {
-        const heartRate = 3.0 * (1 - lifeRatio * 0.8); // slows from 3 Hz to 0.6 Hz
-        c.bloodTimer += dt;
-        const heartbeat = Math.sin(c.bloodTimer * heartRate * Math.PI * 2);
-        if (heartbeat > 0.85 && lifeRatio < 0.85) {
-          const pressure = (1 - lifeRatio) * 0.15;
-          window.BloodSimulatorV21.rawBurst(
-            c.x, 0.3, c.z,
-            Math.floor(2 + pressure * 4),
-            { spreadXZ: 0.4 * pressure, spreadY: 0.25 * pressure, viscosity: 0.62 }
-          );
-        }
-      } else if (window.BloodSystem && typeof BloodSystem.emitBurst === 'function') {
+      if (window.BloodSystem && typeof BloodSystem.emitBurst === 'function') {
         const heartRate = 3.0 * (1 - lifeRatio * 0.8); // slows from 3 Hz to 0.6 Hz
         c.bloodTimer += dt;
         const heartbeat = Math.sin(c.bloodTimer * heartRate * Math.PI * 2);
@@ -2041,8 +2022,10 @@
           burstCount = 160;
           burstOpts.spdMax = 22;
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.1, z, 50, { spreadXZ: 11, spreadY: 14, viscosity: 0.50, enemyType: 'slime' });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.1, z, 50, {
+                enemyType: 'slime', spdMin: 6, spdMax: 14, rMin: 0.009, rMax: 0.024, life: 3.2, visc: 0.50
+              });
             }
           };
         } else if (killVariant === 2) {
@@ -2061,8 +2044,10 @@
           chunkForce = { dirX: (killVX || 0.8), dirZ: (killVZ || 0), power: 0.55, spread: 0.40 };
         } else if (killVariant === 1) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.15, z, 35, { spreadXZ: 9, spreadY: 16, viscosity: 0.62, enemyType: 'slime' });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.15, z, 35, {
+                enemyType: 'slime', spdMin: 3, spdMax: 9, rMin: 0.007, rMax: 0.022, life: 2.4
+              });
             }
           };
         } else {
@@ -2084,8 +2069,10 @@
           burstOpts.color = 0x663000;
         } else if (killVariant === 2) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.05, z, 30, { spreadXZ: 10, spreadY: 10, viscosity: 0.70, color: 0xff5500 });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.05, z, 30, {
+                color: 0xff5500, spdMin: 4, spdMax: 10, rMin: 0.008, rMax: 0.022, life: 2.8
+              });
             }
           };
         }
@@ -2093,9 +2080,7 @@
     }
 
     // Hollywood-style overdone slime death burst
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color, enemyType: burstOpts.enemyType });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, burstCount, burstOpts);
     }
     _spawnFleshChunks(slot, chunkCount, true, chunkColors, chunkForce);
@@ -2318,8 +2303,8 @@
         chunkForce = { dirX: killVX || 0, dirZ: killVZ || 0, power: 0.80, spread: 0.60 };
         if (killVariant === 1) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.15, z, 45, { spreadXZ: 16, spreadY: 16, viscosity: 0.55 });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.15, z, 45, { enemyType: 'crawler', spdMin: 7, spdMax: 16, rMin: 0.010, rMax: 0.026, life: 3.0, visc: 0.55 });
             }
           };
         } else if (killVariant === 2) {
@@ -2336,8 +2321,8 @@
         chunkForce = { dirX: (killVX || 0.5), dirZ: (killVZ || 0), power: 0.55, spread: 0.35 };
         if (killVariant === 1) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.1, z, 30, { spreadXZ: 10, spreadY: 16, viscosity: 0.62 });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.1, z, 30, { enemyType: 'crawler', spdMin: 4, spdMax: 10, rMin: 0.008, rMax: 0.020, life: 2.2 });
             }
           };
         } else if (killVariant === 2 && crawler.headMesh) {
@@ -2354,8 +2339,8 @@
         corpseLinger = 50;
         if (killVariant === 2) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.08, z, 28, { spreadXZ: 9, spreadY: 14, viscosity: 0.72, color: 0xff6600 });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.08, z, 28, { color: 0xff6600, spdMin: 3, spdMax: 9, rMin: 0.008, rMax: 0.020, life: 2.4 });
             }
           };
         }
@@ -2363,9 +2348,7 @@
     }
 
     // Hollywood-style overdone crawler death burst
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color, enemyType: burstOpts.enemyType });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, burstCount, burstOpts);
     }
 
@@ -2563,11 +2546,9 @@
       _showDamageNumber(_tmpV3.x, _tmpV3.y + 0.5, _tmpV3.z, actualDmg, enemy.hp <= 0, false);
     }
 
-    // Light-blue blood burst (DeepSkyBlue) — use BloodSimulatorV21
+    // Light-blue blood burst (DeepSkyBlue) — use BloodV2 rawBurst if available
     const bx = enemy.mesh.position.x, by = enemy.mesh.position.y + enemy.size, bz = enemy.mesh.position.z;
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(bx, by, bz, 6, { spreadXZ: 1.0, spreadY: 0.4 });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(bx, by, bz, 6, { enemyType: 'leaping_slime' });
     } else if (window.BloodSystem && typeof BloodSystem.emitBurst === 'function') {
       BloodSystem.emitBurst({ x: bx, y: by, z: bz }, 5, { spreadXZ: 1.0, spreadY: 0.4 });
@@ -2637,8 +2618,8 @@
         chunkForce = { dirX: killVX || 0, dirZ: killVZ || 0, power: 0.70, spread: 0.55 };
         if (killVariant === 1) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.1, z, 30, { spreadXZ: 12, spreadY: 16, viscosity: 0.62 });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.1, z, 30, { enemyType: 'leaping_slime', spdMin: 6, spdMax: 12, rMin: 0.009, rMax: 0.022, life: 2.8 });
             }
           };
         } else if (killVariant === 2) {
@@ -2667,8 +2648,8 @@
         corpseLinger = 10;
         if (killVariant === 2) {
           extraFx = function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.05, z, 26, { spreadXZ: 9, spreadY: 14, viscosity: 0.70, color: 0xff6600 });
+            if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+              BloodV2.rawBurstUpward(x, y + 0.05, z, 26, { color: 0xff6600, spdMin: 3, spdMax: 9, rMin: 0.008, rMax: 0.021, life: 2.5 });
             }
           };
         }
@@ -2676,9 +2657,7 @@
     }
 
     // Light-blue gore burst
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color, enemyType: burstOpts.enemyType });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, burstCount, burstOpts);
     } else if (window.BloodSystem) {
       if (typeof BloodSystem.emitBurst === 'function') {
@@ -2863,9 +2842,7 @@
 
     const _bPos1 = _reusableBloodPos;
     _bPos1.x = slot.mesh.position.x; _bPos1.y = slot.mesh.position.y + 0.4; _bPos1.z = slot.mesh.position.z;
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(_bPos1.x, _bPos1.y, _bPos1.z, 10, { spreadXZ: 0.8, spreadY: 0.4, viscosity: 0.62 });
-    } else if (window.BloodSystem) {
+    if (window.BloodSystem) {
       // Increased from 8 to 10 to match old map realism
       if (typeof BloodSystem.emitBurst === 'function') {
         BloodSystem.emitBurst(_bPos1, 10, { spreadXZ: 0.8, spreadY: 0.4, minLife: 50, maxLife: 100 });
@@ -2909,9 +2886,7 @@
 
     const _bPos2 = _reusableBloodPos;
     _bPos2.x = slot.mesh.position.x; _bPos2.y = slot.mesh.position.y + 0.4; _bPos2.z = slot.mesh.position.z;
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(_bPos2.x, _bPos2.y, _bPos2.z, 18, { spreadXZ: 1.5, spreadY: 0.6, viscosity: 0.62 });
-    } else if (window.BloodSystem) {
+    if (window.BloodSystem) {
       // Tuned burst count to 18 to match old map impact
       if (typeof BloodSystem.emitBurst === 'function') {
         BloodSystem.emitBurst(_bPos2, 18, { spreadXZ: 1.5, spreadY: 0.6, minLife: 50, maxLife: 100 });
@@ -2949,9 +2924,7 @@
 
     const _bPos3 = _reusableBloodPos;
     _bPos3.x = slot.mesh.position.x; _bPos3.y = slot.mesh.position.y + 0.4; _bPos3.z = slot.mesh.position.z;
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(_bPos3.x, _bPos3.y, _bPos3.z, 25, { spreadXZ: 2.0, spreadY: 0.8, viscosity: 0.62 });
-    } else if (window.BloodSystem) {
+    if (window.BloodSystem) {
       // Burst count tuned to 25 to approximate old map's sniper hit intensity
       if (typeof BloodSystem.emitBurst === 'function') {
         BloodSystem.emitBurst(_bPos3, 25, { spreadXZ: 2.0, spreadY: 0.8, minLife: 50, maxLife: 100 });
@@ -3003,9 +2976,7 @@
 
     const _bPos4 = _reusableBloodPos;
     _bPos4.x = slot.mesh.position.x; _bPos4.y = slot.mesh.position.y + 0.4; _bPos4.z = slot.mesh.position.z;
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(_bPos4.x, _bPos4.y, _bPos4.z, 33, { spreadXZ: 2.5, spreadY: 1.0, viscosity: 0.62 });
-    } else if (window.BloodSystem) {
+    if (window.BloodSystem) {
       if (typeof BloodSystem.emitBurst === 'function') {
         BloodSystem.emitBurst(_bPos4, 15, { spreadXZ: 2.5, spreadY: 1.0 });
       }
@@ -3999,22 +3970,7 @@
 
         // ── Character level-up water/energy fountain ──
         // Multi-pulse upward fountain: primary blast → rising jet → dispersing crown
-        if (window.BloodSimulatorV21) {
-          // Primary blast: wide, powerful upward burst from ground
-          window.BloodSimulatorV21.rawBurst(px, py + 0.1, pz, 90, { color: 0x44CCFF, spreadXZ: 14, spreadY: 14, viscosity: 0.40 });
-          // Rising jet: narrower core shooting higher (80ms later)
-          setTimeout(function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(px, py + 0.6, pz, 55, { color: 0x88EEFF, spreadXZ: 18, spreadY: 18, viscosity: 0.38 });
-            }
-          }, 80);
-          // Crown dispersal: mist of bright droplets at peak (180ms later)
-          setTimeout(function() {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(px, py + 1.2, pz, 35, { color: 0xCCFFFF, spreadXZ: 9, spreadY: 9, viscosity: 0.50 });
-            }
-          }, 180);
-        } else if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
+        if (window.BloodV2 && typeof BloodV2.rawBurstUpward === 'function') {
           // Primary blast: wide, powerful upward burst from ground
           BloodV2.rawBurstUpward(px, py + 0.1, pz, 90, {
             color: 0x44CCFF, spdMin: 5, spdMax: 14, rMin: 0.014, rMax: 0.036, life: 2.8, visc: 0.40,
@@ -4084,9 +4040,7 @@
           if (distSq <= _killRSq) {
             // ── ZONE 1: < 1m — brutal instant kill ──
             // Massive blood burst
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(ex, ey, ez, 200, { spreadXZ: 24, spreadY: 24, viscosity: 0.25 });
-            } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+            if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
               BloodV2.rawBurst(ex, ey, ez, 200, {
                 spdMin: 10, spdMax: 24, rMin: 0.018, rMax: 0.055, life: 5.0, visc: 0.25,
                 enemyType: e.enemyType || 'slime',
@@ -4128,9 +4082,7 @@
               _tmpV3b.set(-kbDirX, 0, -kbDirZ);
               GoreSim.onHit(e, 'pistol', _tmpV3, _tmpV3b);
             }
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(ex, ey, ez, 100, { spreadXZ: 16, spreadY: 16, viscosity: 0.35 });
-            } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+            if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
               BloodV2.rawBurst(ex, ey, ez, 100, {
                 spdMin: 5, spdMax: 16, rMin: 0.015, rMax: 0.040, life: 4.0, visc: 0.35,
                 enemyType: e.enemyType || 'slime',
@@ -4163,9 +4115,7 @@
               _tmpV3b.set(-kbDirX, 0, -kbDirZ);
               GoreSim.onHit(e, 'pistol', _tmpV3, _tmpV3b);
             }
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(ex, ey, ez, 40, { spreadXZ: 9, spreadY: 9, viscosity: 0.50 });
-            } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+            if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
               BloodV2.rawBurst(ex, ey, ez, 40, {
                 spdMin: 2, spdMax: 9, rMin: 0.010, rMax: 0.025, life: 3.0, visc: 0.50,
                 enemyType: e.enemyType || 'slime',
@@ -4197,9 +4147,7 @@
           const ex = _swPos.x, ey = _swPos.y + 1.0, ez = _swPos.z;
 
           if (distSq <= _killRSq) {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(ex, ey, ez, 200, { spreadXZ: 24, spreadY: 24, viscosity: 0.25 });
-            } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+            if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
               BloodV2.rawBurst(ex, ey, ez, 200, {
                 spdMin: 10, spdMax: 24, rMin: 0.018, rMax: 0.055, life: 5.0, visc: 0.25,
                 enemyType: 'skinwalker',
@@ -4215,9 +4163,7 @@
             const _swDmg = Math.max(0, (e.hp || 1) - 1);
             if (_swDmg > 0) e.takeDamage(_swDmg);
             if (e.dead) _killSkinwalker(e);
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(ex, ey, ez, 100, { spreadXZ: 16, spreadY: 16, viscosity: 0.35 });
-            } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+            if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
               BloodV2.rawBurst(ex, ey, ez, 100, {
                 spdMin: 5, spdMax: 16, rMin: 0.015, rMax: 0.040, life: 4.0, visc: 0.35,
                 enemyType: 'skinwalker',
@@ -4231,9 +4177,7 @@
             const _swDmg = Math.floor((e.hp || 1) * 0.5);
             if (_swDmg > 0) e.takeDamage(_swDmg);
             if (e.dead) _killSkinwalker(e);
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(ex, ey, ez, 40, { spreadXZ: 9, spreadY: 9, viscosity: 0.50 });
-            } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+            if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
               BloodV2.rawBurst(ex, ey, ez, 40, {
                 spdMin: 2, spdMax: 9, rMin: 0.010, rMax: 0.025, life: 3.0, visc: 0.50,
                 enemyType: 'skinwalker',
@@ -4624,9 +4568,7 @@
     const eRadius = projectile.explosionRadius;
     const dmg = projectile.weaponDmg || 0;
     _weaponAoeDamage(ix, iz, eRadius * eRadius, dmg, '#FF4400');
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(ix, 0.5, iz, 15, { color: 0xFF6600, spreadXZ: 5, spreadY: 9 });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(ix, 0.5, iz, 15, { color: 0xFF6600, spdMin: 1, spdMax: 5 });
     }
     // Clear radius so it doesn't retrigger on the same projectile after release
@@ -4642,9 +4584,7 @@
     const ex = _weaponEnemyX(e), ez = _weaponEnemyZ(e);
     _tmpV3.set(ex, 1.5, ez);
     createFloatingText(dmg, _tmpV3, color, dmg);
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(ex, 0.5, ez, 4, { spreadXZ: 2, spreadY: 4 });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(ex, 0.5, ez, 4, {});
     }
     if (e.parts && e.parts.root) {
@@ -4733,9 +4673,7 @@
             s.squishTime = 0.25;
             _tmpV3.set(s.mesh.position.x, 1.4, s.mesh.position.z);
             createFloatingText(dmg, _tmpV3, '#FF8800', dmg);
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(s.mesh.position.x, s.mesh.position.y + 0.5, s.mesh.position.z, 20, { spreadXZ: 1.0, spreadY: 0.4 });
-            } else if (window.BloodSystem && typeof BloodSystem.emitBurst === 'function') {
+            if (window.BloodSystem && typeof BloodSystem.emitBurst === 'function') {
               _reusableBloodPos.x = s.mesh.position.x;
               _reusableBloodPos.y = s.mesh.position.y + 0.5;
               _reusableBloodPos.z = s.mesh.position.z;
@@ -4943,9 +4881,7 @@
         const mx = nearest ? _weaponEnemyX(nearest) : px;
         const mz = nearest ? _weaponEnemyZ(nearest) : pz;
         _weaponAoeDamage(mx, mz, mArea * mArea, dmg, '#FF6622');
-        if (window.BloodSimulatorV21) {
-          window.BloodSimulatorV21.rawBurst(mx, 0.5, mz, 30, { color: 0xFF4400, spreadXZ: 8, spreadY: 14 });
-        } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+        if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
           BloodV2.rawBurst(mx, 0.5, mz, 30, { color: 0xFF4400, spdMin: 2, spdMax: 8 });
         }
       }
@@ -6552,13 +6488,12 @@
 
   // ─── Blood system init ────────────────────────────────────────────────────────
   function _initBloodSystem() {
-    // NEW BLOOD SIMULATOR V2.1 – terrain-aware + full fantasy realism
-    if (window.BloodSimulatorV21 && typeof BloodSimulatorV21.init === 'function') {
-      const terrainMesh =
-        window._engine2Instance && window._engine2Instance.groundMesh
-          ? window._engine2Instance.groundMesh
-          : null;
-      window.BloodSimulatorV21.init(scene, terrainMesh, player ? player.mesh : null);
+    if (window.BloodSystem && typeof BloodSystem.init === 'function') {
+      BloodSystem.init(scene);
+    }
+    // New v2 systems — guarded so missing scripts are harmless
+    if (window.BloodV2 && typeof window.BloodV2.init === 'function') {
+      window.BloodV2.init(scene);
     }
     if (window.GoreSim && typeof window.GoreSim.init === 'function') {
       window.GoreSim.init(scene, camera);
@@ -6767,9 +6702,7 @@
     }
 
     // Blood on hit
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(hx, hy, hz, 5, { color: 0xc8c7c0, spreadXZ: 2, spreadY: 4 });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(hx, hy, hz, 5, { color: 0xc8c7c0 });
     }
 
@@ -6795,9 +6728,7 @@
     _triggerHitStop(HIT_STOP_KILL_DURATION_MS * 0.9);
     _triggerShake(SHAKE_KILL_BASE * 0.9);
 
-    if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, 20, { color: 0xc8c7c0, spreadXZ: 9, spreadY: 14 });
-    } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
+    if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, 20, { color: 0xc8c7c0 });
     }
     if (window.GoreSim && typeof GoreSim.onKill === 'function') {
@@ -7465,9 +7396,9 @@
         player.update(dt, _allEnemiesScratch, _activeProjList, expGems);
       }
 
-      // Blood system tick – V2.1 is the sole blood system
-      if (window.BloodSimulatorV21 && typeof BloodSimulatorV21.update === 'function') {
-        window.BloodSimulatorV21.update(dt);
+      // Blood system tick (BloodSystem shim internally calls BloodV2.update — do NOT call BloodV2.update again)
+      if (window.BloodSystem && typeof BloodSystem.update === 'function') {
+        BloodSystem.update();
       }
       if (window.GoreSim && typeof window.GoreSim.update === 'function') {
         window.GoreSim.update(dt);
@@ -7585,10 +7516,7 @@
         }
 
         // Check blood instanced meshes — ensure they aren't accidentally hidden
-        if (window.BloodSimulatorV21 && window.BloodSimulatorV21.dropIM) {
-          if (!window.BloodSimulatorV21.dropIM.visible) window.BloodSimulatorV21.dropIM.visible = true;
-          if (window.BloodSimulatorV21.mistIM && !window.BloodSimulatorV21.mistIM.visible) window.BloodSimulatorV21.mistIM.visible = true;
-        } else if (window.BloodV2 && typeof window.BloodV2.getMeshes === 'function') {
+        if (window.BloodV2 && typeof window.BloodV2.getMeshes === 'function') {
           const _bMeshes = window.BloodV2.getMeshes();
           if (_bMeshes.drops && !_bMeshes.drops.visible) _bMeshes.drops.visible = true;
           if (_bMeshes.mist  && !_bMeshes.mist.visible)  _bMeshes.mist.visible  = true;

@@ -1035,12 +1035,8 @@
           this.mesh.position.x += sl.vx;
           this.mesh.position.z += sl.vz;
           // Leave blood smear trail on ground while sliding
-          if (sl.frame % 2 === 0) {
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(this.mesh.position.x, 0.1, this.mesh.position.z, 2, { spreadXZ: 0.2, spreadY: 0.1 });
-            } else if (window.BloodSystem) {
-              window.BloodSystem.emitDragTrail(this.mesh.position, { x: sl.vx, y: 0, z: sl.vz }, 6);
-            }
+          if (sl.frame % 2 === 0 && window.BloodSystem) {
+            window.BloodSystem.emitDragTrail(this.mesh.position, { x: sl.vx, y: 0, z: sl.vz }, 6);
           }
           if (sl.frame % 3 === 0) {
             spawnBloodDecal(this.mesh.position);
@@ -1173,9 +1169,7 @@
             spawnParticles(this.mesh.position, 0xAEEEFF, 6);
             spawnParticles(this.mesh.position, 0xFFFFFF, 4);
             // Ice crack particles + water pool on ground
-            if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(this.mesh.position.x, this.mesh.position.y, this.mesh.position.z, 30, { color: 0xAEEEFF, spreadXZ: 0.6, spreadY: 0.4, viscosity: 0.95 });
-            } else if (window.BloodSystem) {
+            if (window.BloodSystem) {
               window.BloodSystem.emitBurst(this.mesh.position, 30, { spreadXZ: 0.6, spreadY: 0.4, color1: 0xAEEEFF, color2: 0xFFFFFF, minSize: 0.05, maxSize: 0.14 });
             }
             // Brief shaking struggle: enemy wiggles before breaking free
@@ -1883,12 +1877,7 @@
           spawnBloodDecal(this.mesh.position); // Extra decal at critical HP
           spawnBloodDecal({ x: this.mesh.position.x + (Math.random()-0.5)*0.8, y: 0, z: this.mesh.position.z + (Math.random()-0.5)*0.8 });
           // Arterial spurt at critically low HP — continuous pumping wound
-          if (window.BloodSimulatorV21) {
-            if (!this._arterialSpurtFired) {
-              this._arterialSpurtFired = true;
-              window.BloodSimulatorV21.rawBurst(this.mesh.position.x, this.mesh.position.y + 0.4, this.mesh.position.z, 50, { spreadXZ: 11, spreadY: 16, viscosity: 0.62 });
-            }
-          } else if (window.BloodSystem && window.BloodSystem.emitArterialSpurt && !this._arterialSpurtFired) {
+          if (window.BloodSystem && window.BloodSystem.emitArterialSpurt && !this._arterialSpurtFired) {
             this._arterialSpurtFired = true; // fire only once per HP threshold crossing
             const artDir = { x: Math.cos(Math.random() * Math.PI * 2), y: 0, z: Math.sin(Math.random() * Math.PI * 2) };
             window.BloodSystem.emitArterialSpurt(this.mesh.position, artDir, {
@@ -1897,11 +1886,7 @@
           }
         }
         // Blood system: directional spray on heavy hits
-        if (window.BloodSimulatorV21 && isHeavyHit) {
-          const isShotgunHit = SHOTGUN_TYPES.includes(damageType);
-          window.BloodSimulatorV21.onEnemyHit(this, this.mesh.position,
-            isShotgunHit ? 'projectile' : 'melee');
-        } else if (window.BloodSystem && isHeavyHit) {
+        if (window.BloodSystem && isHeavyHit) {
           const isShotgunHit = SHOTGUN_TYPES.includes(damageType);
           window.BloodSystem.emitBurst(this.mesh.position, isShotgunHit ? 60 : 30, { spreadXZ: 0.8, spreadY: 0.2, minSize: 0.01, maxSize: 0.06, minLife: 20, maxLife: 50 });
         }

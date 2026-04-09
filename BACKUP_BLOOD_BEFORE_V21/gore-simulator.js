@@ -1013,13 +1013,6 @@ console.log(`[GoreSim] Pools built: ${MAX_BLOOD_DROPS} drops, ${MAX_CHUNKS} chun
 onHit(enemy, weaponType, hitPoint, hitNormal) {
 if (!this._initialized || !enemy) return;
 
-// Forward to BloodSimulatorV21 if available
-if (window.BloodSimulatorV21 && hitPoint) {
-  const damageType = (weaponType === 'pistol' || weaponType === 'shotgun' || weaponType === 'sniper' ||
-    weaponType === 'smg' || weaponType === 'revolver' || weaponType === 'minigun') ? 'projectile' : 'melee';
-  window.BloodSimulatorV21.onEnemyHit(enemy, hitPoint, damageType);
-}
-
 // ── DYNAMIC GORE LOD ──────────────────────────────────────────────────
 // HIGH-ENTITY MODE (>= 15 enemies): skip all physics, project flat decal only
 const _enemyCnt = (window.enemies && Array.isArray(window.enemies)) ? window.enemies.length
@@ -1126,11 +1119,6 @@ return { organHit, organDead, wound };
 // ────────────────────────────────────────
 onKill(enemy, weaponType, projectile) {
 if (!this._initialized) return;
-
-// Forward to BloodSimulatorV21 if available
-if (window.BloodSimulatorV21 && enemy && enemy.mesh) {
-  window.BloodSimulatorV21.onEnemyDeath(enemy, enemy.mesh.position);
-}
 
 const profile = WEAPON_GORE[weaponType] || WEAPON_GORE.pistol;
 const gore    = this._enemyGoreMap.get(enemy.id || enemy.uuid);
@@ -1763,13 +1751,6 @@ size:  0.04 + Math.random() * 0.14,
 },
 
 _spawnBloodBurst(pos, direction, count, color, style) {
-// Forward to BloodSimulatorV21 if available
-if (window.BloodSimulatorV21) {
-  const spreadXZ = (style === 'ground') ? 2.0 : (style === 'pump' || style === 'heart_death') ? 4.0 : 9.0;
-  const spreadY  = (style === 'ground') ? 0.5 : (style === 'pump' || style === 'heart_death') ? 22.0 : 14.0;
-  window.BloodSimulatorV21.rawBurst(pos.x, pos.y, pos.z, count, { color, spreadXZ, spreadY, viscosity: BLOOD_VISCOSITY });
-  return;
-}
 for (let i = 0; i < count; i++) {
 let vel;
 if (style === 'pump' || style === 'heart_death') {
