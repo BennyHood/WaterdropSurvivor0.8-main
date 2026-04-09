@@ -312,13 +312,17 @@
         var _ydb = document.getElementById('you-died-banner');
         if (_ydb) _ydb.style.display = 'none';
         var _runStats = window.currentRunStats || {};
-        window.RunEndScreen.show({
+        // Set globals that RunEndScreen's loot and quest/button sections read directly
+        window._resGoldEarned = Math.max(0, ((window.saveData && window.saveData.gold) || 0) - _sbStartGold);
+        var _endStats = {
           kills:         _runKills,
           eliteKills:    _runStats.eliteKills || 0,
           timeSurvived:  Math.floor(_elapsedSec),
           maxCombo:      _sbMaxCombo || 0,
           xpAccumulated: _runStats.xpAccumulated || 0
-        });
+        };
+        window._resCurrentStats = _endStats;
+        window.RunEndScreen.show(_endStats);
       } else {
         // Fallback: show YOU DIED banner then reload
         if (typeof showYouDiedBanner === 'function') {
@@ -535,6 +539,7 @@
   let _killCombo      = 0;    // current combo count
   let _killComboTimer = 0;    // countdown before combo resets (seconds)
   let _sbMaxCombo     = 0;    // peak combo this run (for RunEndScreen)
+  let _sbStartGold    = 0;    // saveData.gold at run start (for _resGoldEarned)
 
   // ─── Level-Up Shockwave Rings (pooled: pre-allocated once, reused) ──────────
   let _lvlUpRings = [];       // active expanding ring meshes (references into _lvlUpRingPool)
@@ -8202,6 +8207,7 @@
         startAccountXP:    (window.saveData && window.saveData.accountXP)    || 0
       };
       _sbMaxCombo = 0;
+      _sbStartGold = (window.saveData && window.saveData.gold) || 0;
       if (saveData.tutorialQuests) saveData.tutorialQuests.killsThisRun = 0;
       // Track total runs — keep stats.* and top-level counter in sync
       if (saveData) {
