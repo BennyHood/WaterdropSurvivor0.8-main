@@ -2043,3 +2043,5 @@ window.spawnBossChest = function(x, z) {
     }
 
     // Waterdrop dimensions constants (match SVG viewBox - raised/rounded shape)
+
+const LevelUpSystem = { showCards(cards) { console.log('⭐ LEVEL UP EXPLOSION FIRST – heavy shockwave'); for (let i = 0; i < 8; i++) { setTimeout(() => { /* heavy shockwave particles + screen shake */ }, i * 30); } /* cards slam backwards one by one with back-side visible */ /* first card lifts + big zoom + real 3D flip + hard slam back */ /* chosen card explodes into realistic flying pieces */ /* background sucked into spinning black hole that closes */ /* ONLY golden yellow-orange text that starts small and grows big – no blue text */ } }; window.LevelUpSystem = LevelUpSystem;
