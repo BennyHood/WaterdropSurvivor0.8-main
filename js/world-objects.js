@@ -117,12 +117,7 @@
     { x: 25, z: -18, type: 2, s: 1.05 },
     { x: -22, z: -20, type: 0, s: 0.9 },
     { x: 15, z: -25, type: 1, s: 1.0 },
-    // ── Near lake (willows, scenic) ──
-    { x: 22, z: -25, type: 2, s: 1.3 },
-    { x: 38, z: -22, type: 2, s: 1.2 },
-    { x: 25, z: -38, type: 2, s: 1.15 },
-    { x: 35, z: -40, type: 2, s: 1.25 },
-    { x: 40, z: -35, type: 0, s: 0.9 },
+    // ── Near lake: old willows removed — replaced by LakeVegetation bonsai trees ──
     // ── Near Stonehenge ──
     { x: 28, z: 28, type: 0, s: 0.9 },
     { x: 42, z: 28, type: 1, s: 1.0 },

@@ -7462,6 +7462,11 @@
         WorldObjects.update(dt);
       }
 
+      // Lake vegetation: bonsai sway, lily bob, reed wind, grass rustle
+      if (window.LakeVegetation && typeof LakeVegetation.updateLakeVegetation === 'function') {
+        LakeVegetation.updateLakeVegetation(dt);
+      }
+
       // ── Universal invisible entity safety net (once per second) ──────────────
       // Fixes: Enemies, XP stars, and blood particles disappearing unexpectedly
       _visibilityCheckTimer += dt;
@@ -7959,6 +7964,13 @@
         console.log('[🎮 SandboxLoop] Initializing WorldObjects (static map)...');
         WorldObjects.init(scene, window._sandboxLights);
         console.log('[🎮 SandboxLoop] ✓ WorldObjects initialized');
+      }
+
+      // Initialize Lake Vegetation (bonsai trees, lily pads, reeds, grass around lake)
+      if (window.LakeVegetation) {
+        LakeVegetation.initLakeVegetationPool();
+        LakeVegetation.generateCozyLakeArea(scene);
+        console.log('[🎮 SandboxLoop] ✓ Lake vegetation initialized');
       }
 
       console.log('[🎮 SandboxLoop] Initializing blood/gore systems...');
