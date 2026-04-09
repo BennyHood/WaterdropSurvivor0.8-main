@@ -817,6 +817,200 @@
   })();
 
   // -----------------------------------------------------------------------
+  // Universal Dopamine Reward Modal — casino-style "REWARD CLAIMED" popup
+  //
+  // Usage:
+  //   window.DopamineReward.show({
+  //     title: 'Quest Complete!',          // optional headline
+  //     items: ['+500 Gold', '+1 Wood Axe Arm'],  // array of reward strings
+  //     onClaim: function() {}             // optional callback on CLAIM click
+  //   });
+  //
+  // The modal drops from the top, shows confetti particles, neon borders,
+  // and requires an active CLAIM button click to dismiss.
+  // -----------------------------------------------------------------------
+  (function _installDopamineRewardModal() {
+    const CSS_ID = '_drm-style';
+    if (!document.getElementById(CSS_ID)) {
+      const st = document.createElement('style');
+      st.id = CSS_ID;
+      st.textContent = [
+        '@keyframes _drm-drop{0%{transform:translateX(-50%) translateY(-120%);opacity:0;}',
+        '60%{transform:translateX(-50%) translateY(8px);opacity:1;}',
+        '80%{transform:translateX(-50%) translateY(-4px);}',
+        '100%{transform:translateX(-50%) translateY(0);opacity:1;}}',
+        '@keyframes _drm-border-glow{0%,100%{box-shadow:0 0 18px #00ffff,0 0 40px rgba(0,255,255,0.35),',
+        'inset 0 0 20px rgba(0,0,0,0.9),0 20px 80px rgba(0,0,0,0.9);}',
+        '50%{box-shadow:0 0 32px #aa44ff,0 0 70px rgba(170,68,255,0.45),',
+        'inset 0 0 20px rgba(0,0,0,0.9),0 20px 80px rgba(0,0,0,0.9);}}',
+        '@keyframes _drm-title-pulse{0%,100%{text-shadow:0 0 12px #00ffff,0 0 30px rgba(0,255,255,0.5);}',
+        '50%{text-shadow:0 0 24px #aa44ff,0 0 60px rgba(170,68,255,0.6);}}',
+        '@keyframes _drm-item-pop{0%{transform:scale(0.6) translateX(-20px);opacity:0;}',
+        '70%{transform:scale(1.08) translateX(2px);}',
+        '100%{transform:scale(1) translateX(0);opacity:1;}}',
+        '@keyframes _drm-confetti-fly{0%{transform:translate(0,0) rotate(0deg) scale(1);opacity:1;}',
+        '100%{transform:translate(var(--drm-tx),var(--drm-ty)) rotate(var(--drm-rot)) scale(0.2);opacity:0;}}',
+        '@keyframes _drm-claim-pulse{0%,100%{box-shadow:0 0 10px #00ffcc,0 4px 0 #006644;}',
+        '50%{box-shadow:0 0 24px #00ffcc,0 0 50px rgba(0,255,200,0.4),0 4px 0 #006644;}}',
+        '@keyframes _drm-sweep{0%{left:-100%;}100%{left:110%;}}',
+        '._drm-overlay{position:fixed;inset:0;z-index:30000;background:rgba(0,0,0,0.7);',
+        'pointer-events:all;}',
+        '._drm-modal{position:fixed;top:60px;left:50%;',
+        'transform:translateX(-50%) translateY(-120%);',
+        'z-index:30001;width:clamp(280px,90vw,480px);',
+        'background:#06000f;',
+        'border:2px solid #00ffff;border-radius:6px;overflow:hidden;',
+        'animation:_drm-drop 0.65s cubic-bezier(0.22,1,0.36,1) forwards,',
+        '_drm-border-glow 3s ease-in-out 0.65s infinite;',
+        'font-family:\'Bangers\',cursive;}',
+        '._drm-header{padding:18px 20px 10px;text-align:center;position:relative;overflow:hidden;}',
+        '._drm-header-line{width:60%;height:1px;background:linear-gradient(90deg,transparent,#00ffff,transparent);',
+        'margin:6px auto 0;}',
+        '._drm-eyebrow{font-size:11px;letter-spacing:5px;color:#00ffcc;',
+        'text-transform:uppercase;font-family:\'Segoe UI\',sans-serif;}',
+        '._drm-title{font-size:clamp(22px,5vw,34px);color:#00ffff;letter-spacing:4px;',
+        'animation:_drm-title-pulse 2s ease-in-out 0.65s infinite;display:block;margin:4px 0;}',
+        '._drm-sweep{position:absolute;top:0;left:-100%;width:40%;height:100%;',
+        'background:linear-gradient(90deg,transparent,rgba(255,255,255,0.07),transparent);',
+        'animation:_drm-sweep 2s ease-in-out 0.8s infinite;}',
+        '._drm-items{padding:0 20px 12px;list-style:none;margin:0;}',
+        '._drm-item{font-size:clamp(16px,3.5vw,22px);color:#FFD700;',
+        'padding:7px 14px;margin:5px 0;border-radius:3px;',
+        'background:rgba(255,215,0,0.07);border-left:3px solid #FFD700;',
+        'opacity:0;animation:_drm-item-pop 0.4s ease-out forwards;}',
+        '._drm-footer{padding:12px 20px 18px;text-align:center;}',
+        '._drm-claim-btn{display:inline-block;font-family:\'Bangers\',cursive;',
+        'font-size:clamp(18px,4vw,26px);letter-spacing:4px;padding:10px 40px;',
+        'background:linear-gradient(to bottom,#00ffcc,#00aa88);color:#001a12;',
+        'border:none;border-radius:4px;cursor:pointer;position:relative;',
+        'box-shadow:0 0 10px #00ffcc,0 4px 0 #006644;',
+        'animation:_drm-claim-pulse 1.5s ease-in-out 1s infinite;',
+        'transition:transform 0.1s,filter 0.1s;}',
+        '._drm-claim-btn:active{transform:translateY(3px);filter:brightness(0.85);',
+        'box-shadow:0 0 4px #00ffcc,0 1px 0 #006644;animation:none;}',
+        '._drm-confetti{position:fixed;z-index:30002;pointer-events:none;font-size:18px;',
+        'animation:_drm-confetti-fly var(--drm-dur,1.4s) ease-out forwards;}'
+      ].join('');
+      document.head.appendChild(st);
+    }
+
+    var _queue = [];
+    var _showing = false;
+
+    function _spawnConfetti(cx, cy) {
+      var ICONS = ['🎊','✨','💎','🌟','💛','🟣','🔵','🟢','🟡'];
+      for (var i = 0; i < 60; i++) {
+        (function(i) {
+          var p = document.createElement('div');
+          p.className = '_drm-confetti';
+          p.textContent = ICONS[Math.floor(Math.random() * ICONS.length)];
+          var angle = Math.random() * Math.PI * 2;
+          var dist  = 80 + Math.random() * 260;
+          var tx    = Math.cos(angle) * dist;
+          var ty    = Math.sin(angle) * dist - 60;
+          var dur   = (0.8 + Math.random() * 0.9).toFixed(2);
+          var delay = (i * 0.012).toFixed(2);
+          var rot   = ((Math.random() - 0.5) * 720).toFixed(0) + 'deg';
+          p.style.cssText = [
+            'left:' + (cx + (Math.random()-0.5)*40) + 'px;',
+            'top:'  + (cy + (Math.random()-0.5)*20) + 'px;',
+            '--drm-tx:' + tx.toFixed(0) + 'px;',
+            '--drm-ty:' + ty.toFixed(0) + 'px;',
+            '--drm-rot:' + rot + ';',
+            '--drm-dur:' + dur + 's;',
+            'animation-delay:' + delay + 's;opacity:0;'
+          ].join('');
+          document.body.appendChild(p);
+          setTimeout(function() { if (p.parentNode) p.parentNode.removeChild(p); },
+            (parseFloat(dur) + parseFloat(delay) + 0.2) * 1000);
+        })(i);
+      }
+    }
+
+    function _showNext() {
+      if (_showing || _queue.length === 0) return;
+      _showing = true;
+      var opts = _queue.shift();
+
+      var overlay = document.createElement('div');
+      overlay.className = '_drm-overlay';
+
+      var modal = document.createElement('div');
+      modal.className = '_drm-modal';
+
+      var title = opts.title || 'REWARD CLAIMED';
+      var eyebrow = opts.eyebrow || '🎉 CLAIM YOUR REWARDS 🎉';
+
+      modal.innerHTML = [
+        '<div class="_drm-header">',
+          '<div class="_drm-sweep"></div>',
+          '<div class="_drm-eyebrow">' + eyebrow + '</div>',
+          '<span class="_drm-title">' + title + '</span>',
+          '<div class="_drm-header-line"></div>',
+        '</div>',
+        '<ul class="_drm-items" id="_drm-items-list"></ul>',
+        '<div class="_drm-footer">',
+          '<button class="_drm-claim-btn">✅ CLAIM</button>',
+        '</div>'
+      ].join('');
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Animate items in sequentially
+      var list = modal.querySelector('#_drm-items-list');
+      var items = opts.items || [];
+      items.forEach(function(item, i) {
+        var li = document.createElement('li');
+        li.className = '_drm-item';
+        li.textContent = item;
+        li.style.animationDelay = (0.65 + i * 0.12) + 's';
+        list.appendChild(li);
+      });
+
+      // Confetti burst from modal centre
+      setTimeout(function() {
+        var rect = modal.getBoundingClientRect();
+        _spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }, 700);
+
+      // Claim button
+      var claimBtn = modal.querySelector('._drm-claim-btn');
+      function _dismiss() {
+        claimBtn.removeEventListener('click', _dismiss);
+        overlay.style.transition = 'opacity 0.3s';
+        overlay.style.opacity = '0';
+        modal.style.transition = 'transform 0.3s ease-in,opacity 0.3s';
+        modal.style.transform = 'translateX(-50%) translateY(-110%)';
+        modal.style.opacity = '0';
+        setTimeout(function() {
+          if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+          if (typeof opts.onClaim === 'function') opts.onClaim();
+          _showing = false;
+          _showNext(); // process next queued reward
+        }, 320);
+      }
+      claimBtn.addEventListener('click', _dismiss);
+
+      // Play a click-chime if GameAudio is available
+      if (typeof playSound === 'function') {
+        try { playSound('levelup'); } catch(e) {}
+      }
+    }
+
+    window.DopamineReward = {
+      /**
+       * Queue and show a casino-style "REWARD CLAIMED" modal.
+       * @param {{ title?: string, eyebrow?: string, items: string[], onClaim?: function }} opts
+       */
+      show: function(opts) {
+        _queue.push(opts || {});
+        _showNext();
+      }
+    };
+  })();
+
+  // -----------------------------------------------------------------------
   // Export
   // -----------------------------------------------------------------------
   window.DopamineSystem = {

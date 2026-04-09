@@ -6317,6 +6317,54 @@
     .camp-header-btn:hover { filter: brightness(1.2); }
     .camp-header-btn:active { transform: translateY(2px); box-shadow: 1px 1px 0 #000; animation: btn-glass-press 0.4s ease-out; }
 
+    /* ── Epic "NEW RUN" button — Annunaki 3D physical button ── */
+    @keyframes new-run-pulse {
+      0%,100% { box-shadow: 0 6px 0 #004433, 0 0 18px rgba(0,255,180,0.45), 0 0 40px rgba(150,0,255,0.2); }
+      50% { box-shadow: 0 6px 0 #003322, 0 0 32px rgba(0,255,200,0.7), 0 0 70px rgba(170,0,255,0.4); }
+    }
+    @keyframes new-run-sweep {
+      0% { left: -120%; opacity: 0; }
+      10% { opacity: 1; }
+      85% { opacity: 1; }
+      100% { left: 120%; opacity: 0; }
+    }
+    #camp-action-btn {
+      position: relative;
+      font-family: 'Bangers', cursive;
+      font-size: 20px;
+      letter-spacing: 4px;
+      padding: 12px 32px;
+      background: linear-gradient(180deg, #00ffcc 0%, #00cc99 30%, #008866 70%, #005544 100%);
+      color: #001a10;
+      border: none;
+      border-radius: 6px;
+      border-bottom: 6px solid #004433;
+      border-right: 3px solid #003322;
+      box-shadow: 0 6px 0 #004433, 0 0 18px rgba(0,255,180,0.45), 0 0 40px rgba(150,0,255,0.2);
+      cursor: pointer;
+      text-transform: uppercase;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.4);
+      overflow: hidden;
+      animation: new-run-pulse 2.4s ease-in-out infinite;
+      transition: transform 0.08s, border-bottom-width 0.08s, box-shadow 0.08s;
+      touch-action: manipulation;
+    }
+    #camp-action-btn::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -120%; width: 60%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+      animation: new-run-sweep 3.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    #camp-action-btn:hover { filter: brightness(1.12); }
+    #camp-action-btn:active {
+      transform: translateY(5px);
+      border-bottom-width: 2px;
+      box-shadow: 0 2px 0 #004433, 0 0 8px rgba(0,255,180,0.3);
+      animation: none;
+    }
+
     /* Building title dome header inside popups */
     .building-popup-title {
       font-family: 'Bangers', cursive;

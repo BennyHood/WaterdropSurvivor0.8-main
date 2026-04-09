@@ -26,32 +26,44 @@
 
   // Building layout (id → world position + label)
   const BUILDING_DEFS = [
-    // Inner ring (close to fire) — core gameplay buildings
-    { id: 'questMission',        x:  0,    z:  10,  label: 'Quest Hall',          icon: '📜' },
-    { id: 'campBoard',           x: -4,    z:   3,  label: 'Teleport Portal',     icon: '🌀' },
-    { id: 'codex',               x:  4,    z:   3,  label: 'Codex',               icon: '📖' },
-    // Mid ring — progression & combat
-    { id: 'forge',               x: -12,   z:   2,  label: 'The Forge',           icon: '⚒️'  },
-    { id: 'armory',              x: -10,   z:  -8,  label: 'Armory',              icon: '⚔️'  },
-    { id: 'trainingHall',        x:  10,   z:  -8,  label: 'Training Hall',       icon: '🏋️' },
-    { id: 'progressionHouse',    x:  12,   z:   2,  label: 'Progression House',   icon: '💪' },
-    { id: 'skillTree',           x: -8,    z:  10,  label: 'Skill Tree',          icon: '🌳' },
-    { id: 'specialAttacks',      x:  8,    z:  10,  label: 'Special Attacks',     icon: '⚡' },
-    // Outer ring — social/economy/misc
-    { id: 'warehouse',           x:  0,    z: -14,  label: 'Warehouse',           icon: '🏪' },
-    { id: 'slotMachine',         x:  6,    z: -14,  label: '🎰 Slot Machine',     icon: '🎰' },
-    { id: 'tavern',              x: -8,    z:  16,  label: 'Tavern',              icon: '🍺' },
-    { id: 'shop',                x:  8,    z:  16,  label: 'Shop',                icon: '🛒' },
-    { id: 'inventory',           x:  14,   z:  -4,  label: 'Inventory',           icon: '📦' },
-    { id: 'companionHouse',      x: -14,   z:  -4,  label: 'Companion Home',      icon: '🏡' },
-    { id: 'achievementBuilding', x: -6,    z: -14,  label: 'Hall of Trophies',    icon: '🏆' },
-    { id: 'accountBuilding',     x:  3,    z: -10,  label: 'Profile & Records',   icon: '👤' },
-    { id: 'shrine',              x:  0,    z:  -6,  label: 'The Artifact Shrine', icon: '🏛️' },
-    { id: 'prismReliquary',      x: -10,   z: -16,  label: 'Prism Reliquary',     icon: '💎' },
-    { id: 'astralGateway',       x:  10,   z: -16,  label: 'Astral Gateway',      icon: '🌀' },
+    // ── Campfire hub (closest) ──────────────────────────────
+    { id: 'campBoard',           x: -4,    z:   4,  label: 'Teleport Portal',     icon: '🌀' },
+    { id: 'codex',               x:  4,    z:   4,  label: 'Codex',               icon: '📖' },
+
+    // ── CENTERPIECE: Quest Hall + flanks (north hub) ────────
+    { id: 'questMission',        x:  0,    z:  13,  label: 'Quest Hall',          icon: '📜' },
+    { id: 'armory',              x: -12,   z:  13,  label: 'Armory',              icon: '⚔️'  },
+    { id: 'progressionHouse',    x:  12,   z:  13,  label: 'Progression House',   icon: '💪' },
+
+    // ── Skill Tree — majestic glowing tree behind Quest Hall ─
+    { id: 'skillTree',           x:  0,    z:  21,  label: 'Skill Tree',          icon: '🌳' },
+    { id: 'tavern',              x: -9,    z:  20,  label: 'Tavern',              icon: '🍺' },
+    { id: 'shop',                x:  9,    z:  20,  label: 'Shop',                icon: '🛒' },
+
+    // ── Mid ring — forge, progression, combat ───────────────
+    { id: 'forge',               x: -11,   z:   4,  label: 'The Forge',           icon: '⚒️'  },
+    { id: 'specialAttacks',      x:  11,   z:   4,  label: 'Special Attacks',     icon: '⚡' },
+    { id: 'trainingHall',        x:  11,   z:  -6,  label: 'Training Hall',       icon: '🏋️' },
+    { id: 'inventory',           x:  14,   z:   0,  label: 'Inventory',           icon: '📦' },
+
+    // ── Companion Area — clearly visible west cluster ────────
+    { id: 'companionHouse',      x: -15,   z:   0,  label: 'Companion Home',      icon: '🏡' },
     { id: 'droppletShop',        x: -14,   z:   8,  label: 'The Dropplet Shop',   icon: '💧' },
     { id: 'tempShop',            x:  14,   z:   8,  label: 'Temp Shop',           icon: '🏪' },
-    { id: 'trashRecycle',        x: -14,   z: -12,  label: 'Trash & Recycle',     icon: '♻️' },
+
+    // ── Economy / south ring ─────────────────────────────────
+    { id: 'warehouse',           x:  0,    z: -12,  label: 'Warehouse',           icon: '🏪' },
+    { id: 'shrine',              x:  0,    z:  -6,  label: 'The Artifact Shrine', icon: '🏛️' },
+    { id: 'achievementBuilding', x: -6,    z: -14,  label: 'Hall of Trophies',    icon: '🏆' },
+    { id: 'accountBuilding',     x:  3,    z: -10,  label: 'Profile & Records',   icon: '👤' },
+    { id: 'prismReliquary',      x: -10,   z: -16,  label: 'Prism Reliquary',     icon: '💎' },
+    { id: 'astralGateway',       x:  10,   z: -16,  label: 'Astral Gateway',      icon: '🌀' },
+    { id: 'trashRecycle',        x: -14,   z: -10,  label: 'Trash & Recycle',     icon: '♻️' },
+
+    // ── 🎰 Casino corner (southeast) ─────────────────────────
+    { id: 'slotMachine',         x:  12,   z: -11,  label: '🎰 Slot Machine',     icon: '🎰' },
+
+    // ── Far south ─────────────────────────────────────────────
     { id: 'prestige',            x:  0,    z: -20,  label: 'Prestige Altar',      icon: '✨' },
   ];
 
@@ -188,7 +200,7 @@
 
   // Alien Incubator pod state
   let _incubatorMesh = null;
-  const INCUBATOR_POS = { x: -16, z: 6 }; // near Companion Home
+  const INCUBATOR_POS = { x: -18, z: 0 }; // grouped with Companion Home (x:-15, z:0)
   const INCUBATOR_INTERACT_RADIUS = 3.5;
   let _incubatorInteracted = false; // guard against duplicate interactions this session
 
@@ -198,7 +210,7 @@
   // After Quest Hall is built (level > 0) AND chip inserted, robot moves inside.
   const AIDA_ROBOT_POS  = { x: 3, z: -1 };   // beside campfire (south-east)
   const AIDA_CHIP_POS   = { x: 4, z: -2.5 }; // chip nearby, slightly further from fire
-  const AIDA_QUEST_HALL_POS = { x: 0, z: 9.5 }; // in front of Quest Hall (z:11) once built
+  const AIDA_QUEST_HALL_POS = { x: 0, z: 11.5 }; // in front of Quest Hall (z:13) once built
   const AIDA_INTRO_RADIUS = 5.0;  // Generous radius so the interaction is easy to trigger
 
   /**
@@ -729,17 +741,18 @@
     // Place torch posts with warm point lights between building positions
     // Creates a cozy, non-electrical atmosphere around the camp
     const torchPositions = [
-      // Path torches between buildings (x, z) — updated for compact layout
-      { x:  5, z:  3 },   // between campfire and training hall
-      { x: -5, z:  3 },   // between campfire and companion house
-      { x:  5, z: -4 },   // near forge path
-      { x: -5, z: -4 },   // near skill tree path
-      { x:  0, z:  5 },   // path to quest hall
-      { x:  0, z: -6 },   // path to achievement hall
-      { x: -7, z: -1 },   // near trash & recycle
-      { x:  7, z: -1 },   // near temp shop
-      { x:  2, z:  8 },   // near shop
-      { x: -2, z:  8 },   // near tavern
+      // Path torches between buildings (x, z) — updated for new layout
+      { x:  5, z:  3 },   // between campfire and special attacks / forge
+      { x: -5, z:  3 },   // between campfire and forge
+      { x:  0, z:  7 },   // path to Quest Hall
+      { x: -6, z:  9 },   // path to Armory flank
+      { x:  6, z:  9 },   // path to Progression House flank
+      { x:  0, z: -6 },   // path south to shrine
+      { x: -7, z: -1 },   // near companion house area
+      { x:  7, z: -1 },   // near inventory
+      { x:  0, z: 17 },   // path to Skill Tree / tavern / shop
+      { x: -10, z: 16 },  // tavern approach
+      { x:  10, z: 16 },  // shop approach
     ];
 
     const postGeo = new THREE.CylinderGeometry(0.06, 0.08, 1.6, 6);
@@ -2188,119 +2201,159 @@
     const grp = new THREE.Group();
     grp.position.set(def.x, 0, def.z);
 
-    // Trunk (thick, ancient)
-    const trunkGeo = new THREE.CylinderGeometry(0.7, 1.1, 7, 10);
+    // Ancient crystalline trunk — dark obsidian with cyan vein emission
+    const trunkGeo = new THREE.CylinderGeometry(0.8, 1.3, 8, 10);
     const trunkMat = new THREE.MeshPhongMaterial({
-      color: 0x2d1a06,
-      emissive: 0x0a2a10,
-      emissiveIntensity: 0.15
+      color: 0x0a0520,
+      emissive: 0x0033aa,
+      emissiveIntensity: 0.3,
+      shininess: 60
     });
     const trunk = _mesh(trunkGeo, trunkMat);
-    trunk.position.y = 3.5;
+    trunk.position.y = 4;
     trunk.castShadow = true;
     grp.add(trunk);
 
-    // Main canopy layers (glowing green/teal)
-    const canopyColors = [0x00ff88, 0x00e0ff, 0x88ff44];
-    const layerData = [
-      { y: 6.5, r: 4.5 },
-      { y: 9,   r: 3.5 },
-      { y: 11,  r: 2.5 },
-      { y: 12.5,r: 1.3 },
+    // Thick roots radiating from base
+    for (let r = 0; r < 7; r++) {
+      const a = (r / 7) * Math.PI * 2;
+      const rootLen = 2.5 + Math.random() * 1.5;
+      const rootGeo = new THREE.CylinderGeometry(0.08, 0.22, rootLen, 5);
+      const rootCol = r % 2 === 0 ? 0x0044cc : 0x6600cc;
+      const rootMat = new THREE.MeshBasicMaterial({ color: rootCol, transparent: true, opacity: 0.7, blending: THREE.AdditiveBlending });
+      const root = _mesh(rootGeo, rootMat);
+      root.position.set(Math.sin(a) * (rootLen * 0.5), 0.1, Math.cos(a) * (rootLen * 0.5));
+      root.rotation.z = Math.sin(a) * 0.7;
+      root.rotation.x = Math.cos(a) * 0.7;
+      grp.add(root);
+    }
+
+    // Main holographic canopy layers — cyan / purple alternating
+    const canopyData = [
+      { y: 7,    r: 5.5, col: 0x00ffff, opacity: 0.55 },
+      { y: 10,   r: 4.5, col: 0x9900ff, opacity: 0.55 },
+      { y: 12.5, r: 3.5, col: 0x00ffff, opacity: 0.65 },
+      { y: 14.5, r: 2.5, col: 0xcc00ff, opacity: 0.70 },
+      { y: 16,   r: 1.5, col: 0x00ffff, opacity: 0.85 },
     ];
-    layerData.forEach((l, li) => {
-      const col = canopyColors[li % canopyColors.length];
+    canopyData.forEach((l) => {
       const cMat = new THREE.MeshPhongMaterial({
-        color: col,
-        emissive: col,
-        emissiveIntensity: 0.45,
+        color: l.col,
+        emissive: l.col,
+        emissiveIntensity: 0.55,
         transparent: true,
-        opacity: 0.8
+        opacity: l.opacity,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
       });
-      const cGeo = new THREE.SphereGeometry(l.r, 12, 8);
+      const cGeo = new THREE.SphereGeometry(l.r, 10, 7);
       const canopy = _mesh(cGeo, cMat);
       canopy.position.y = l.y;
       grp.add(canopy);
     });
 
-    // Bioluminescent glow light
-    const glowLight = new THREE.PointLight(0x00ff88, 3, 18, 2);
-    glowLight.position.set(0, 10, 0);
-    grp.add(glowLight);
-
-    // Rune stones around the base
-    for (let i = 0; i < 6; i++) {
-      const a = (i / 6) * Math.PI * 2;
-      const r = 3.5;
-      const rGeo = new THREE.DodecahedronGeometry(0.35, 0);
-      const rMat = new THREE.MeshPhongMaterial({
-        color: 0x334433,
-        emissive: 0x00ff44,
-        emissiveIntensity: 0.6
+    // Holographic rune pillars — 8 around the base
+    for (let i = 0; i < 8; i++) {
+      const a = (i / 8) * Math.PI * 2;
+      const pr = 4.5;
+      const pillarGeo = new THREE.CylinderGeometry(0.1, 0.15, 3, 5);
+      const pCol = i % 2 === 0 ? 0x00ffff : 0xaa00ff;
+      const pillarMat = new THREE.MeshPhongMaterial({
+        color: pCol, emissive: pCol, emissiveIntensity: 0.9,
+        transparent: true, opacity: 0.75
       });
-      const rune = _mesh(rGeo, rMat);
-      rune.position.set(Math.sin(a) * r, 0.35, Math.cos(a) * r);
-      rune.castShadow = true;
-      grp.add(rune);
+      const pillar = _mesh(pillarGeo, pillarMat);
+      pillar.position.set(Math.sin(a) * pr, 1.5, Math.cos(a) * pr);
+      grp.add(pillar);
+      // Glow cap on pillar
+      const capGeo = new THREE.SphereGeometry(0.22, 6, 6);
+      const capMat = new THREE.MeshBasicMaterial({ color: pCol, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+      const cap = _mesh(capGeo, capMat);
+      cap.position.set(Math.sin(a) * pr, 3.2, Math.cos(a) * pr);
+      grp.add(cap);
     }
 
-    // Floating sparkle particles on the tree
+    // Primary bioluminescent glow — cyan
+    const glowLight1 = new THREE.PointLight(0x00ffff, 4, 24, 2);
+    glowLight1.position.set(0, 12, 0);
+    grp.add(glowLight1);
+
+    // Secondary glow — purple accent
+    const glowLight2 = new THREE.PointLight(0xaa00ff, 3, 20, 2);
+    glowLight2.position.set(0, 7, 0);
+    grp.add(glowLight2);
+
+    // Ground halo — flat disc of light radiating from roots
+    const haloGeo = new THREE.CircleGeometry(6, 24);
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: 0x3300ff,
+      transparent: true,
+      opacity: 0.12,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const halo = _mesh(haloGeo, haloMat);
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.04;
+    grp.add(halo);
+
+    // Holographic leaf sparkle particles — dense cyan/purple cloud
     const sparkleGeo = new THREE.BufferGeometry();
-    const sCount = 60;
+    const sCount = 120;
     const sPos = new Float32Array(sCount * 3);
+    const sCols = new Float32Array(sCount * 3);
     for (let i = 0; i < sCount; i++) {
       const a  = Math.random() * Math.PI * 2;
-      const ry = 5 + Math.random() * 8;
-      const rr = Math.random() * 4;
+      const ry = 5 + Math.random() * 12;
+      const rr = 0.5 + Math.random() * 5;
       sPos[i * 3]     = Math.sin(a) * rr;
       sPos[i * 3 + 1] = ry;
       sPos[i * 3 + 2] = Math.cos(a) * rr;
+      // Alternate cyan / purple
+      if (i % 3 === 0) { sCols[i*3]=0; sCols[i*3+1]=1; sCols[i*3+2]=1; }       // cyan
+      else if (i % 3 === 1) { sCols[i*3]=0.7; sCols[i*3+1]=0; sCols[i*3+2]=1; } // purple
+      else { sCols[i*3]=0; sCols[i*3+1]=0.6; sCols[i*3+2]=1; }                   // blue
     }
     sparkleGeo.setAttribute('position', new THREE.BufferAttribute(sPos, 3));
+    sparkleGeo.setAttribute('color',    new THREE.BufferAttribute(sCols, 3));
     const sparkleMat = new THREE.PointsMaterial({
-      color: 0xaaffaa,
-      size: 0.14,
+      vertexColors: true,
+      size: 0.18,
       transparent: true,
-      opacity: 0.8,
+      opacity: 0.9,
       blending: THREE.AdditiveBlending,
       depthWrite: false
     });
     grp.add(new THREE.Points(sparkleGeo, sparkleMat));
 
-    // Songspire pulsating threads — thin glowing filaments connecting trunk to canopy
-    const threadColors = [0x00ff88, 0x00aaff, 0x88ffcc, 0xaaffaa];
-    for (let t = 0; t < 12; t++) {
-      const a = (t / 12) * Math.PI * 2;
-      const startR = 0.7;
-      const endR   = 2.5 + Math.random() * 2;
-      const startY = 2 + Math.random() * 3;
-      const endY   = 7 + Math.random() * 5;
+    // Songspire energy filaments — from trunk to canopy
+    const threadColors = [0x00ffff, 0xaa00ff, 0x0088ff, 0xff00cc];
+    for (let t = 0; t < 16; t++) {
+      const a = (t / 16) * Math.PI * 2;
+      const startR = 0.8;
+      const endR   = 2 + Math.random() * 3;
+      const startY = 2 + Math.random() * 4;
+      const endY   = 8 + Math.random() * 7;
       const threadLen = Math.sqrt(Math.pow(endR - startR, 2) + Math.pow(endY - startY, 2));
-      const threadGeo = new THREE.CylinderGeometry(0.03, 0.03, threadLen, 4, 1);
+      const threadGeo = new THREE.CylinderGeometry(0.025, 0.025, threadLen, 4, 1);
       const tCol = threadColors[t % threadColors.length];
       const threadMat = new THREE.MeshBasicMaterial({
         color: tCol,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.7,
         blending: THREE.AdditiveBlending
       });
       const thread = _mesh(threadGeo, threadMat);
-      // Position at midpoint and rotate toward endpoint
       const mx = (Math.sin(a) * startR + Math.sin(a) * endR) * 0.5;
       const mz = (Math.cos(a) * startR + Math.cos(a) * endR) * 0.5;
       thread.position.set(mx, (startY + endY) * 0.5, mz);
-      // Tilt toward endpoint
       thread.rotation.z = Math.atan2(endR - startR, endY - startY);
       thread.rotation.y = a;
       grp.add(thread);
     }
 
-    // Extra fill light for Songspire glow (blue tint, complements fire)
-    const songLight = new THREE.PointLight(0x00ccff, 1.5, 12, 2);
-    songLight.position.set(0, 8, 0);
-    grp.add(songLight);
-
-    _addNameSign(grp, def.label, 0, 1.2, 4.5);
+    _addNameSign(grp, def.label, 0, 1.2, 5.5);
     return grp;
   }
 

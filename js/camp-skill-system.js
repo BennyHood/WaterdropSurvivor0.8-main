@@ -2011,6 +2011,51 @@
         conditions: ['questForge0_unlock']
       },
 
+      // === ROBOTIC BACKPACK CHAIN (parallel, unlocks after quest_craftAllTools) ===
+      quest_harvesterBackpack: {
+        id: 'quest_harvesterBackpack',
+        name: "A.I.D.A's Backpack Blueprint",
+        description: "A.I.D.A: 'I have blueprints from my creators. A hands-free harvesting apparatus. You just need to build the Backpack and the tool attachments.' Craft the Harvester Backpack at the Forge using 2 Leather + 2 Metal.",
+        objectives: 'Craft the Harvester Backpack at the Forge (2 Leather + 2 Metal)',
+        claim: 'Quest Hall',
+        rewardGold: 75,
+        rewardSkillPoints: 1,
+        triggerOnDeath: false,
+        autoClaim: false,
+        message: "🎒 <b>Harvester Backpack Built!</b><br><br><i>A.I.D.A: 'Backpack frame constructed. Now we need the arm attachments — a Wood Axe Arm and a Stone Pickaxe Arm.'</i><br><br>🎯 <b>NEXT:</b> Craft the Wood Axe Arm at the Forge (10 Gold + 5 Wood + 2 Metal)!",
+        nextQuest: 'quest_woodAxeArm',
+        conditions: ['quest_craftAllTools']
+      },
+
+      quest_woodAxeArm: {
+        id: 'quest_woodAxeArm',
+        name: 'Wood Axe Arm',
+        description: "Craft the Wood Axe Arm at the Forge. Once equipped, stand still near any tree for 1.5 seconds and watch your backpack go to work!",
+        objectives: 'Craft the Wood Axe Arm (10 Gold + 5 Wood + 2 Metal)',
+        claim: 'Quest Hall',
+        rewardGold: 50,
+        rewardSkillPoints: 1,
+        triggerOnDeath: false,
+        autoClaim: false,
+        message: "🦾 <b>Wood Axe Arm Crafted!</b><br><br><i>A.I.D.A: 'Limb attachment online. Stand still near a tree for 1.5 seconds — I will do the rest. After the tree falls, stand near the resource circle to collect the wood.'</i><br><br>🎯 <b>NEXT:</b> Craft the Stone Pickaxe Arm (10 Gold + 5 Stone + 2 Metal)!",
+        nextQuest: 'quest_stonePickaxeArm',
+        conditions: ['quest_harvesterBackpack']
+      },
+
+      quest_stonePickaxeArm: {
+        id: 'quest_stonePickaxeArm',
+        name: 'Stone Pickaxe Arm',
+        description: "Craft the Stone Pickaxe Arm at the Forge. Your robotic backpack will now auto-harvest stone when you stand still near rocks!",
+        objectives: 'Craft the Stone Pickaxe Arm (10 Gold + 5 Stone + 2 Metal)',
+        claim: 'Quest Hall',
+        rewardGold: 50,
+        rewardSkillPoints: 1,
+        triggerOnDeath: false,
+        autoClaim: false,
+        message: "⚙️ <b>Stone Pickaxe Arm Crafted!</b><br><br><i>A.I.D.A: 'Full harvesting apparatus online. Stand still near trees or rocks and the backpack handles the rest. Maximum efficiency achieved.'</i>",
+        conditions: ['quest_woodAxeArm']
+      },
+
       // === PHASE 1: Run quest → Unlock Skill Tree ===
       quest1_kill3: {
         id: 'quest1_kill3',
@@ -3369,6 +3414,33 @@
       }
       if (typeof showStatChange === 'function') showStatChange('+1 🎰 Slot Coin', 'rare');
       chatSystemMessage('🎁 Quest "' + quest.name + '" claimed! Rewards received.');
+
+      // Casino-style Dopamine Reward modal for major quest claims
+      if (window.DopamineReward && !quest.noRewardPopup) {
+        const _drmItems = [];
+        const _baseGold = (quest.rewardGold || 0) + 50; // includes 50-bonus
+        if (_baseGold > 0) _drmItems.push('💰 +' + _baseGold + ' Gold');
+        if (quest.rewardSkillPoints) _drmItems.push('⭐ +' + quest.rewardSkillPoints + ' Skill Points');
+        if (quest.rewardAttributePoints) _drmItems.push('💪 +' + quest.rewardAttributePoints + ' Attribute Points');
+        if (quest.rewardSAP) _drmItems.push('⚡ +' + quest.rewardSAP + ' Special Atk Points');
+        if (quest.rewardResources) {
+          const _iconMap = { wood: '🪵', stone: '🪨', coal: '🖤', iron: '⚙️', metal: '🔩' };
+          Object.entries(quest.rewardResources).forEach(function([res, amt]) {
+            _drmItems.push((_iconMap[res] || '📦') + ' +' + amt + ' ' + res.charAt(0).toUpperCase() + res.slice(1));
+          });
+        }
+        if (quest.rewardFreeSpin) _drmItems.push('🎡 +' + quest.rewardFreeSpin + ' Free Spin');
+        _drmItems.push('🎰 +1 Slot Coin');
+        if (_drmItems.length > 0) {
+          setTimeout(function() {
+            window.DopamineReward.show({
+              eyebrow: '📜 QUEST COMPLETE',
+              title: quest.name.toUpperCase(),
+              items: _drmItems
+            });
+          }, 400);
+        }
+      }
 
       // Dopamine: spawn confetti + Benny contextual hint for next step
       if (window.DopamineSystem && window.DopamineSystem.RewardJuice) {

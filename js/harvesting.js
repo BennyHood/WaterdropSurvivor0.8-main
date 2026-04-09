@@ -90,6 +90,36 @@
       epicBuyCost: 400,
       epicForgeReq: { wood: 10 },
       swingDurationMs: 300
+    },
+    // ── Robotic Harvesting Backpack system ─────────────────────
+    harvesterBackpack: {
+      id: 'harvesterBackpack', name: 'Harvester Backpack', icon: '🎒',
+      description: 'A.I.D.A\'s hands-free harvesting apparatus. Enables robotic arm attachments.',
+      craftCost: { leather: 2, metal: 2 },
+      isBackpack: true,
+      swingDurationMs: 0
+    },
+    woodAxeArm: {
+      id: 'woodAxeArm', name: 'Wood Axe Arm', icon: '🦾',
+      description: 'Robotic axe arm. Stand near trees to auto-harvest wood.',
+      targets: ['tree'],
+      yields: 'wood',
+      craftCost: { gold: 10, wood: 5, metal: 2 },
+      isRoboticArm: true,
+      swingDurationMs: 600,
+      chopCount: 3,
+      requiredBackpack: 'harvesterBackpack'
+    },
+    stonePickaxeArm: {
+      id: 'stonePickaxeArm', name: 'Stone Pickaxe Arm', icon: '⚙️',
+      description: 'Robotic pickaxe arm. Stand near rocks to auto-harvest stone.',
+      targets: ['rock'],
+      yields: 'stone',
+      craftCost: { gold: 10, stone: 5, metal: 2 },
+      isRoboticArm: true,
+      swingDurationMs: 700,
+      chopCount: 3,
+      requiredBackpack: 'harvesterBackpack'
     }
   };
 
@@ -1051,6 +1081,304 @@
     }
 
     _drawSwingOverlay(playerPos);
+    _updateRoboticBackpack(playerPos, now);
+  }
+
+// ── Robotic Backpack Harvesting System ─────────────────────
+  // State for the robotic arm harvest sequence
+  const ROBOTIC_STILL_MS   = 1500;  // ms standing still near node to trigger arm
+  const ROBOTIC_COLLECT_MS = 2000;  // ms standing near fallen node to collect
+  let _roboticState = null; // { phase:'arming'|'animating'|'fallen'|'collecting', nodeRef, startTime, ... }
+  let _roboticPlayerLastX = null;
+  let _roboticPlayerLastZ = null;
+  let _roboticStillStart  = null;
+  let _roboticCSSInjected = false;
+
+  function _injectRoboticCSS() {
+    if (_roboticCSSInjected) return;
+    _roboticCSSInjected = true;
+    const s = document.createElement('style');
+    s.id = '_robotic-arm-style';
+    s.textContent = [
+      '@keyframes _ra-extend{0%{transform:translateX(-50%) scaleX(0);opacity:0;}',
+      '40%{transform:translateX(-50%) scaleX(1.1);opacity:1;}',
+      '100%{transform:translateX(-50%) scaleX(1);opacity:1;}}',
+      '@keyframes _ra-chop{0%,100%{transform:translateX(-50%) rotate(0deg);}',
+      '50%{transform:translateX(-50%) rotate(-30deg);}}',
+      '@keyframes _ra-retract{0%{opacity:1;transform:translateX(-50%) scaleX(1);}',
+      '100%{opacity:0;transform:translateX(-50%) scaleX(0);}}',
+      '@keyframes _ra-circle{0%{stroke-dashoffset:157;}100%{stroke-dashoffset:0;}}',
+      '@keyframes _ra-leaf{0%{transform:translate(0,0) rotate(0deg);opacity:1;}',
+      '100%{transform:translate(var(--ra-lx),var(--ra-ly)) rotate(360deg);opacity:0;}}',
+      '._ra-arm{position:fixed;bottom:30%;left:50%;',
+      'transform:translateX(-50%);',
+      'z-index:5000;pointer-events:none;',
+      'font-size:clamp(28px,5vw,44px);',
+      'transform-origin:left center;',
+      'animation:_ra-extend 0.35s ease-out forwards;}',
+      '._ra-arm.chopping{animation:_ra-chop 0.3s ease-in-out 3;}',
+      '._ra-arm.retracting{animation:_ra-retract 0.4s ease-in forwards;}',
+      '._ra-collect-ring{position:fixed;z-index:5001;pointer-events:none;',
+      'transform:translate(-50%,-50%);}',
+      '._ra-leaf-particle{position:fixed;z-index:5002;pointer-events:none;font-size:14px;',
+      'animation:_ra-leaf var(--ra-dur,1s) ease-out forwards;}'
+    ].join('');
+    document.head.appendChild(s);
+  }
+
+  function _hasBackpack() {
+    const t = _getTools();
+    return !!(t && t.harvesterBackpack);
+  }
+  function _hasRoboticArm(nodeType) {
+    const t = _getTools();
+    if (!t) return false;
+    if (nodeType === 'tree')  return !!t.woodAxeArm;
+    if (nodeType === 'rock')  return !!t.stonePickaxeArm;
+    return false;
+  }
+
+  function _spawnLeafParticle(screenX, screenY, isStone) {
+    const icons = isStone ? ['🪨','💥','⚡','✨'] : ['🍃','🌿','🍀','✨','🌱'];
+    const p = document.createElement('div');
+    p.className = '_ra-leaf-particle';
+    p.textContent = icons[Math.floor(Math.random() * icons.length)];
+    const lx = ((Math.random() - 0.5) * 120).toFixed(0) + 'px';
+    const ly = (-40 - Math.random() * 80).toFixed(0) + 'px';
+    const dur = (0.6 + Math.random() * 0.6).toFixed(2) + 's';
+    p.style.cssText = 'left:' + (screenX + (Math.random()-0.5)*30) + 'px;top:' + screenY + 'px;--ra-lx:' + lx + ';--ra-ly:' + ly + ';--ra-dur:' + dur + ';opacity:0;animation-delay:' + (Math.random() * 0.15).toFixed(2) + 's;';
+    document.body.appendChild(p);
+    setTimeout(function() { if (p.parentNode) p.parentNode.removeChild(p); }, 1800);
+  }
+
+  function _worldToScreen(worldX, worldY, worldZ) {
+    const cam = window._gameCamera;
+    if (!cam || typeof THREE === 'undefined') return { x: window.innerWidth/2, y: window.innerHeight/2 };
+    const v = new THREE.Vector3(worldX, worldY, worldZ);
+    v.project(cam);
+    return {
+      x: (v.x * 0.5 + 0.5) * window.innerWidth,
+      y: (-(v.y * 0.5) + 0.5) * window.innerHeight
+    };
+  }
+
+  function _showCollectRing(node) {
+    let ring = document.getElementById('_ra-collect-ring');
+    if (ring) ring.parentNode && ring.parentNode.removeChild(ring);
+    ring = document.createElement('div');
+    ring.id = '_ra-collect-ring';
+    ring.className = '_ra-collect-ring';
+    const isStone = node.type === 'rock';
+    const icon = isStone ? '🪨' : '🪵';
+    const col  = isStone ? '#9966ff' : '#00cc88';
+    ring.innerHTML = [
+      '<svg width="60" height="60" viewBox="0 0 60 60">',
+        '<circle cx="30" cy="30" r="25" fill="none" stroke="rgba(0,0,0,0.5)" stroke-width="5"/>',
+        '<circle id="_ra-ring-arc" cx="30" cy="30" r="25" fill="none" stroke="' + col + '" stroke-width="5"',
+        ' stroke-dasharray="157" stroke-dashoffset="157" stroke-linecap="round" transform="rotate(-90 30 30)"/>',
+      '</svg>',
+      '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:18px;">' + icon + '</div>'
+    ].join('');
+    document.body.appendChild(ring);
+    node._collectRingEl = ring;
+    node._collectRingArc = ring.querySelector('#_ra-ring-arc');
+    node._collectStartTime = Date.now();
+  }
+
+  function _hideCollectRing(node) {
+    if (node._collectRingEl) {
+      if (node._collectRingEl.parentNode) node._collectRingEl.parentNode.removeChild(node._collectRingEl);
+      node._collectRingEl = null;
+      node._collectRingArc = null;
+    }
+  }
+
+  function _updateCollectRing(node, progress) {
+    if (!node._collectRingEl) return;
+    // Position over node
+    const sp = _worldToScreen(node.mesh.position.x, (node.mesh.position.y || 0) + 1.5, node.mesh.position.z);
+    node._collectRingEl.style.left = sp.x + 'px';
+    node._collectRingEl.style.top  = sp.y + 'px';
+    if (node._collectRingArc) {
+      const offset = 157 * (1 - Math.min(1, progress));
+      node._collectRingArc.setAttribute('stroke-dashoffset', offset.toFixed(1));
+    }
+  }
+
+  function _triggerRoboticHarvest(node) {
+    _injectRoboticCSS();
+    const isStone = node.type === 'rock';
+
+    // Remove any leftover arm
+    let oldArm = document.getElementById('_ra-arm');
+    if (oldArm && oldArm.parentNode) oldArm.parentNode.removeChild(oldArm);
+
+    const arm = document.createElement('div');
+    arm.id = '_ra-arm';
+    arm.className = '_ra-arm';
+    arm.textContent = isStone ? '⚙️🔨' : '🦾🪓';
+    document.body.appendChild(arm);
+
+    // Chop 3 times with wobble + particle burst
+    const sp = _worldToScreen(node.mesh.position.x, (node.mesh.position.y || 0) + 1.5, node.mesh.position.z);
+    let chopsDone = 0;
+    const chopsTotal = 3;
+    function _doChop() {
+      if (!arm.parentNode) return;
+      arm.classList.remove('chopping');
+      void arm.offsetWidth;
+      arm.classList.add('chopping');
+      // Damage the node visually
+      node._wobbleTime = 0.5;
+      node._wobbleDir = { x: 0.5, z: 0.5 };
+      // Spawn leaf/rock particles at node screen position
+      for (let i = 0; i < 5; i++) _spawnLeafParticle(sp.x, sp.y, isStone);
+      if (_spawnParticlesFn && node.mesh) {
+        const nd = NODE_DEFS[node.type];
+        _spawnParticlesFn(node.mesh.position, nd ? nd.color : 0x888888, 3);
+      }
+      chopsDone++;
+      if (chopsDone < chopsTotal) {
+        setTimeout(_doChop, 350);
+      } else {
+        // Retract arm
+        arm.classList.remove('chopping');
+        arm.classList.add('retracting');
+        setTimeout(function() { if (arm.parentNode) arm.parentNode.removeChild(arm); }, 450);
+
+        // Deplete node and show collection ring
+        node.depleted = true;
+        node.hp = 0;
+        if (node.type === 'tree') {
+          node._fallVariation = Math.floor(Math.random() * 5);
+          node._collapseStart = Date.now() + 200; // short delay for drama
+        } else {
+          node._breakEffect = true;
+          node._collapseStart = Date.now() + 200;
+        }
+        // Set as "fallen" — ready to collect
+        node._roboticFallen = true;
+        node._fallenPos = { x: node.mesh.position.x, y: 0, z: node.mesh.position.z };
+        _roboticState = { phase: 'fallen', nodeRef: node };
+        _showCollectRing(node);
+      }
+    }
+    setTimeout(_doChop, 350);
+    _roboticState = { phase: 'animating', nodeRef: node };
+  }
+
+  function _updateRoboticBackpack(playerPos, now) {
+    if (!_hasBackpack()) return;
+
+    // Phase: fallen — show collection ring, detect 2s near fallen node
+    if (_roboticState && _roboticState.phase === 'fallen') {
+      const node = _roboticState.nodeRef;
+      if (!node || !node._roboticFallen) { _roboticState = null; return; }
+      const fp = node._fallenPos || (node.mesh ? node.mesh.position : null);
+      if (!fp) return;
+      const dx = playerPos.x - fp.x;
+      const dz = playerPos.z - fp.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > 4.5) {
+        // Left area — hide ring, reset timer
+        _hideCollectRing(node);
+        node._collectStartTime = null;
+        return;
+      }
+      if (!node._collectStartTime) {
+        _showCollectRing(node);
+        node._collectStartTime = now;
+      }
+      const elapsed = now - node._collectStartTime;
+      _updateCollectRing(node, elapsed / ROBOTIC_COLLECT_MS);
+      if (elapsed >= ROBOTIC_COLLECT_MS) {
+        // Grant resource
+        const res = _getResources();
+        if (res) {
+          const yld = node.type === 'tree' ? 'wood' : 'stone';
+          res[yld] = (res[yld] || 0) + 1;
+          _showResourceNotif(yld, 1);
+          _showFloatingText(fp, '+1 ' + (node.type === 'tree' ? '🪵' : '🪨'), node.type === 'tree' ? '#00cc88' : '#9966ff');
+          if (typeof window.updateGoldDisplays === 'function') window.updateGoldDisplays();
+          if (window.GameHarvesting && window.GameHarvesting._onHarvest) {
+            window.GameHarvesting._onHarvest(yld, 1);
+          }
+        }
+        _hideCollectRing(node);
+        delete node._roboticFallen;
+        delete node._fallenPos;
+        _roboticState = null;
+      }
+      return;
+    }
+
+    // Phase: animating — wait for it to finish (handled by _triggerRoboticHarvest callbacks)
+    if (_roboticState && _roboticState.phase === 'animating') return;
+
+    // Phase: idle — check for proximity and stillness
+    const moved = _roboticPlayerLastX !== null &&
+      (Math.abs(playerPos.x - _roboticPlayerLastX) > 0.15 || Math.abs(playerPos.z - _roboticPlayerLastZ) > 0.15);
+    if (moved) {
+      _roboticStillStart = null;
+    }
+    _roboticPlayerLastX = playerPos.x;
+    _roboticPlayerLastZ = playerPos.z;
+
+    if (!_roboticStillStart) { _roboticStillStart = now; return; }
+    const stillMs = now - _roboticStillStart;
+    if (stillMs < ROBOTIC_STILL_MS) return;
+
+    // Find closest valid node that robotic arm can harvest
+    let closest = null;
+    let closestDist = 3.5;
+    for (const node of harvestNodes) {
+      if (node.depleted || node._roboticFallen) continue;
+      if (node.type !== 'tree' && node.type !== 'rock') continue;
+      if (!_hasRoboticArm(node.type)) continue;
+      const dx = playerPos.x - node.mesh.position.x;
+      const dz = playerPos.z - node.mesh.position.z;
+      const d  = Math.sqrt(dx * dx + dz * dz);
+      if (d < closestDist) { closestDist = d; closest = node; }
+    }
+    if (!closest) return;
+
+    // Trigger robotic harvest
+    _roboticStillStart = null; // reset so we don't re-trigger immediately
+    _triggerRoboticHarvest(closest);
+  }
+
+  // Public helpers for crafting the backpack/arms at the Forge
+  function craftRoboticItem(itemId) {
+    const def = TOOL_DEFS[itemId];
+    if (!def || (!def.isBackpack && !def.isRoboticArm)) return { ok: false, reason: 'Unknown item' };
+    const tools = _getTools();
+    if (!tools) return { ok: false, reason: 'No save data' };
+    if (tools[itemId]) return { ok: false, reason: 'Already owned' };
+    // Require backpack first for arms
+    if (def.isRoboticArm && !tools.harvesterBackpack) return { ok: false, reason: 'Requires Harvester Backpack first' };
+    const cost = def.craftCost || {};
+    const res = _getResources();
+    const saveData = _saveData;
+    // Check gold
+    if ((cost.gold || 0) > 0 && (!saveData || saveData.gold < cost.gold)) return { ok: false, reason: 'Not enough gold' };
+    // Check resources
+    if (res) {
+      for (const [mat, qty] of Object.entries(cost)) {
+        if (mat === 'gold') continue;
+        if ((res[mat] || 0) < qty) return { ok: false, reason: 'Not enough ' + mat };
+      }
+    }
+    // Deduct costs
+    if (saveData && cost.gold) saveData.gold -= cost.gold;
+    if (res) {
+      for (const [mat, qty] of Object.entries(cost)) {
+        if (mat === 'gold') continue;
+        res[mat] = (res[mat] || 0) - qty;
+      }
+    }
+    tools[itemId] = true;
+    _updateHUD();
+    return { ok: true };
   }
 
   // ── Clear all resource nodes from scene ──────────────────────
@@ -1179,6 +1507,7 @@
     craftLeather,
     craftMeal,
     recycleToMetal,
+    craftRoboticItem,
 
     // Remove all node meshes from scene, dispose GPU resources, and repopulate
     // with a fresh set of nodes. Call from resetGame at the start of each new run.

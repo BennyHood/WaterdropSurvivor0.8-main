@@ -199,7 +199,7 @@
     <div class="camp-header-btns">
       <button class="camp-header-btn" id="camp-menu-btn">☰ MENU</button>
       <button class="camp-header-btn" id="camp-account-btn" onclick="if(typeof showAccountBuildingOverlay==='function'){showAccountBuildingOverlay();}else if(typeof showAccountSection==='function'){showAccountSection();}">👤 PROFILE</button>
-      <button class="camp-header-btn" id="camp-action-btn" onclick="window.location.href='sandbox.html'">▶ NEW RUN</button>
+      <button class="camp-header-btn" id="camp-action-btn" onclick="if(typeof playSound==='function'){try{playSound('click');}catch(e){}}window.location.href='sandbox.html'">▶ NEW RUN</button>
     </div>
 
     <!-- Top Corner Widgets: Daily Reward (left) + Spin Wheel (right) -->
@@ -857,13 +857,13 @@
   <script src="js/weapon-building.js"></script>   <!-- Weapon building panel: arsenal, upgrades, loadout, spin wheel -->
   <script src="js/muzzle-flash-system.js"></script> <!-- Per-weapon muzzle flash particle effects -->
   <script src="js/dropplet-shop.js"></script>       <!-- The Dropplet Shop: sell gear, buy materials & Waterdrop Energy -->
+  <script src="js/run-end-screen.js"></script>     <!-- Cinematic end-of-run dopamine screen (tally → XP bar → rank-up) — MUST load before game-screens & game-over-reset -->
   <script src="js/game-screens.js"></script>      <!-- init(), menus, wave spawning, effects (~136 KB) -->
   <script src="js/astral-dive.js"></script>       <!-- Astral Dive minigame — tube shooter inside the Astral Gateway -->
   <script src="js/neural-matrix.js"></script>     <!-- Neural Matrix: synapse-constellation upgrade UI -->
   <script src="js/neural-1945.js"></script>       <!-- Neural Matrix 1945: vertical scrolling shooter minigame -->
   <script src="js/level-up-system.js"></script>   <!-- Level-up modal, upgrade cards (~44 KB) -->
   <script src="js/game-hud.js"></script>          <!-- HUD, minimap, combo, NPC dialogue (~48 KB) -->
-  <script src="js/run-end-screen.js"></script>     <!-- Cinematic end-of-run dopamine screen (tally → XP bar → rank-up) -->
   <script src="js/game-over-reset.js"></script>   <!-- Game over screen, reset game (~37 KB) -->
   <script src="js/input-system.js"></script>      <!-- Input handling (~13 KB) -->
   <script src="js/game-loop.js"></script>         <!-- Main animate() loop, starts game (~98 KB) -->

@@ -1412,7 +1412,8 @@ function _showProgressionShopOverlay() {
   tabBar.style.cssText = 'display:flex;border-bottom:2px solid rgba(255,100,0,0.3);';
   const FORGE_TABS = [
     { id: 'upgrades', label: '⬆️ Stat Upgrades',  color: '#FFD700' },
-    { id: 'merge',    label: '🔥 Weapon Merging', color: '#ff6600' }
+    { id: 'merge',    label: '🔥 Weapon Merging', color: '#ff6600' },
+    { id: 'backpack', label: '🎒 Robotic Backpack', color: '#00ffcc' }
   ];
   let _forgeTab = 'upgrades';
   const tabBody = document.createElement('div');
@@ -1428,6 +1429,7 @@ function _showProgressionShopOverlay() {
       }
     });
     if (_forgeTab === 'upgrades') _renderForgeUpgradesTab(tabBody);
+    else if (_forgeTab === 'backpack') _renderForgeBackpackTab(tabBody);
     else _renderForgeMergeTab(tabBody);
   }
 
@@ -1478,6 +1480,81 @@ function _showProgressionShopOverlay() {
         _renderForgeTab();
       });
     });
+  }
+
+  // ── Tab 3: Robotic Backpack ───────────────────────────────────────────────
+  function _renderForgeBackpackTab(container) {
+    const ITEMS = [
+      { id: 'harvesterBackpack', icon: '🎒', name: 'Harvester Backpack', desc: "A.I.D.A's hands-free harvesting apparatus. Required for arm attachments.", costStr: '2 🟫 Leather + 2 🔩 Metal' },
+      { id: 'woodAxeArm',        icon: '🦾', name: 'Wood Axe Arm',        desc: 'Stand still near trees for 1.5s to trigger auto-harvest. 3 chops, then collect.', costStr: '10 💰 + 5 🪵 Wood + 2 🔩 Metal', reqBackpack: true },
+      { id: 'stonePickaxeArm',   icon: '⚙️', name: 'Stone Pickaxe Arm',   desc: 'Stand still near rocks for 1.5s to trigger auto-harvest. 3 hits, then collect.', costStr: '10 💰 + 5 🪨 Stone + 2 🔩 Metal', reqBackpack: true }
+    ];
+    const tools = (window.GameHarvesting && window.GameHarvesting.getTools()) || {};
+    const res   = (window.GameHarvesting && window.GameHarvesting.getResources()) || {};
+    const hasBackpack = !!tools.harvesterBackpack;
+
+    let html = '<div style="font-family:\'Bangers\',cursive;font-size:17px;color:#00ffcc;letter-spacing:2px;margin-bottom:8px;">🎒 ROBOTIC HARVESTING BACKPACK</div>';
+    html += '<div style="font-size:12px;color:#aaa;margin-bottom:14px;font-family:\'Segoe UI\',sans-serif;line-height:1.5;">Stand still near trees or rocks for 1.5s — the robotic arm does the work. Stand near the fallen resource circle for 2s to collect it.</div>';
+    html += '<div style="display:grid;gap:10px;">';
+    ITEMS.forEach(item => {
+      const owned   = !!tools[item.id];
+      const blocked = item.reqBackpack && !hasBackpack;
+      const result  = owned ? null : (window.GameHarvesting && window.GameHarvesting.craftRoboticItem && !owned ? _canCraftRobotic(item.id) : null);
+      const canCraft = result && result.ok;
+
+      html += '<div style="background:rgba(0,255,200,0.06);border:1px solid ' + (owned ? 'rgba(0,220,120,0.6)' : 'rgba(0,255,200,0.25)') + ';border-radius:6px;padding:12px;display:flex;align-items:flex-start;gap:12px;">';
+      html += '<div style="font-size:32px;line-height:1;">' + item.icon + '</div>';
+      html += '<div style="flex:1;">';
+      html += '<div style="font-family:\'Bangers\',cursive;font-size:14px;color:' + (owned ? '#00ff88' : '#00ffcc') + ';letter-spacing:1px;margin-bottom:2px;">' + item.name + '</div>';
+      html += '<div style="font-size:11px;color:#aaa;margin-bottom:6px;font-family:\'Segoe UI\',sans-serif;">' + item.desc + '</div>';
+      html += '<div style="font-size:11px;color:#888;margin-bottom:8px;">Cost: ' + item.costStr + '</div>';
+      if (owned) {
+        html += '<div style="font-size:12px;color:#00ff88;font-weight:bold;">✅ INSTALLED</div>';
+      } else if (blocked) {
+        html += '<div style="font-size:11px;color:#ff8800;">⚠️ Requires Harvester Backpack first</div>';
+      } else {
+        html += '<button class="_forge-backpack-btn" data-id="' + item.id + '" ' + (canCraft ? '' : 'disabled') + ' style="font-size:12px;padding:6px 14px;background:' + (canCraft ? 'linear-gradient(to bottom,#00ffcc,#00aa88)' : 'rgba(0,60,50,0.5)') + ';color:' + (canCraft ? '#001a10' : '#555') + ';border:1px solid ' + (canCraft ? '#00aa88' : '#333') + ';border-radius:4px;cursor:' + (canCraft ? 'pointer' : 'not-allowed') + ';font-family:\'Bangers\',cursive;letter-spacing:1px;">CRAFT 🔨</button>';
+        if (!canCraft && result) html += '<div style="font-size:10px;color:#ff4444;margin-top:4px;">' + (result.reason || 'Cannot craft') + '</div>';
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('._forge-backpack-btn:not([disabled])').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const itemId = this.getAttribute('data-id');
+        if (window.GameHarvesting && window.GameHarvesting.craftRoboticItem) {
+          const res2 = window.GameHarvesting.craftRoboticItem(itemId);
+          if (res2.ok) {
+            const def = { harvesterBackpack: '🎒 Harvester Backpack', woodAxeArm: '🦾 Wood Axe Arm', stonePickaxeArm: '⚙️ Stone Pickaxe Arm' };
+            if (typeof showStatChange === 'function') showStatChange(def[itemId] + ' crafted!');
+            if (typeof saveSaveData === 'function') saveSaveData();
+            _renderForgeTab();
+          }
+        }
+      });
+    });
+
+    function _canCraftRobotic(itemId) {
+      if (!window.GameHarvesting || !window.GameHarvesting.craftRoboticItem) return { ok: false, reason: 'Not available' };
+      // Simulate the check without actually crafting
+      const toolDefs = window.GameHarvesting.TOOL_DEFS;
+      if (!toolDefs) return { ok: false, reason: 'Data missing' };
+      const def = toolDefs[itemId];
+      if (!def) return { ok: false, reason: 'Unknown' };
+      const t = window.GameHarvesting.getTools() || {};
+      if (t[itemId]) return { ok: false, reason: 'Already owned' };
+      if (def.isRoboticArm && !t.harvesterBackpack) return { ok: false, reason: 'Need Harvester Backpack first' };
+      const cost = def.craftCost || {};
+      const r = window.GameHarvesting.getResources() || {};
+      if ((cost.gold || 0) > 0 && saveData.gold < cost.gold) return { ok: false, reason: 'Need ' + cost.gold + ' 💰 Gold' };
+      for (const [mat, qty] of Object.entries(cost)) {
+        if (mat === 'gold') continue;
+        if ((r[mat] || 0) < qty) return { ok: false, reason: 'Need ' + qty + ' ' + mat };
+      }
+      return { ok: true };
+    }
   }
 
   // ── Tab 2: Weapon Merging ─────────────────────────────────────────────────
