@@ -1490,7 +1490,6 @@ function _showProgressionShopOverlay() {
       { id: 'stonePickaxeArm',   icon: '⚙️', name: 'Stone Pickaxe Arm',   desc: 'Stand still near rocks for 1.5s to trigger auto-harvest. 3 hits, then collect.', costStr: '10 💰 + 5 🪨 Stone + 2 🔩 Metal', reqBackpack: true }
     ];
     const tools = (window.GameHarvesting && window.GameHarvesting.getTools()) || {};
-    const res   = (window.GameHarvesting && window.GameHarvesting.getResources()) || {};
     const hasBackpack = !!tools.harvesterBackpack;
 
     let html = '<div style="font-family:\'Bangers\',cursive;font-size:17px;color:#00ffcc;letter-spacing:2px;margin-bottom:8px;">🎒 ROBOTIC HARVESTING BACKPACK</div>';
