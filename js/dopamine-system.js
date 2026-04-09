@@ -944,8 +944,8 @@
       modal.innerHTML = [
         '<div class="_drm-header">',
           '<div class="_drm-sweep"></div>',
-          '<div class="_drm-eyebrow">' + eyebrow + '</div>',
-          '<span class="_drm-title">' + title + '</span>',
+          '<div class="_drm-eyebrow"></div>',
+          '<span class="_drm-title"></span>',
           '<div class="_drm-header-line"></div>',
         '</div>',
         '<ul class="_drm-items" id="_drm-items-list"></ul>',
@@ -953,6 +953,10 @@
           '<button class="_drm-claim-btn">✅ CLAIM</button>',
         '</div>'
       ].join('');
+
+      // Set title and eyebrow as plain text to avoid any HTML/script injection
+      modal.querySelector('._drm-eyebrow').textContent = eyebrow;
+      modal.querySelector('._drm-title').textContent   = title;
 
       overlay.appendChild(modal);
       document.body.appendChild(overlay);
