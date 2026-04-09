@@ -332,6 +332,24 @@
         this.gunHandle.rotation.z = -Math.PI / 6;
         this.mesh.add(this.gunHandle);
         
+        // ── Robot arm backpack — max 3 arms, starts with 1, upgrade in forge ──
+        this.robotArms = [];
+        this.maxRobotArms = 3;
+        const backpackGeo = new THREE.BoxGeometry(0.45, 0.35, 0.15);
+        const backpackMat = new THREE.MeshPhongMaterial({
+          color: 0x333344,
+          emissive: 0x111122,
+          emissiveIntensity: 0.15,
+          shininess: 40,
+          specular: 0x666688,
+        });
+        this.backpack = new THREE.Mesh(backpackGeo, backpackMat);
+        this.backpack.position.set(0, 0.05, -0.22);
+        this.mesh.add(this.backpack);
+
+        // First robot arm (starts with 1)
+        this._addRobotArm();
+
         // Legs — short and thick matching spritesheet's stubby legs
         const legGeo = new THREE.CylinderGeometry(0.09, 0.08, 0.24, 8);
         
@@ -583,6 +601,51 @@
         } catch (_e) {
           console.warn('[Player] Trail pool build error:', _e);
         }
+      }
+
+      // ── Robot arm management ─────────────────────────────────────
+      _addRobotArm() {
+        if (this.robotArms.length >= this.maxRobotArms) return;
+        const THREE = window.THREE;
+        const idx = this.robotArms.length;
+        const armGroup = new THREE.Group();
+
+        // Shoulder joint
+        const jointGeo = new THREE.SphereGeometry(0.06, 8, 8);
+        const metalMat = new THREE.MeshPhongMaterial({
+          color: 0x777788,
+          emissive: 0x222233,
+          emissiveIntensity: 0.15,
+          shininess: 60,
+          specular: 0xaaaacc,
+        });
+        const joint = new THREE.Mesh(jointGeo, metalMat);
+        armGroup.add(joint);
+
+        // Arm segment
+        const segGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.35, 6);
+        const seg = new THREE.Mesh(segGeo, metalMat);
+        seg.position.y = -0.2;
+        seg.rotation.z = 0.2;
+        armGroup.add(seg);
+
+        // Claw/gripper end
+        const clawGeo = new THREE.BoxGeometry(0.06, 0.04, 0.08);
+        const claw = new THREE.Mesh(clawGeo, metalMat);
+        claw.position.y = -0.38;
+        armGroup.add(claw);
+
+        // Position on backpack: spread evenly across back
+        const xOffset = (idx - 1) * 0.18;
+        armGroup.position.set(xOffset, 0.25, -0.30);
+        this.mesh.add(armGroup);
+        this.robotArms.push(armGroup);
+      }
+
+      /** Upgrade: add another robot arm (called from forge) */
+      upgradeRobotArm() {
+        this._addRobotArm();
+        return this.robotArms.length;
       }
 
       update(dt) {
@@ -1240,6 +1303,17 @@
         // Bandage tail sway — physics-like trailing motion
         if (this.bandageTail) {
           this.bandageTail.rotation.x = Math.sin(gameTime * 4 + speedMag * 2) * 0.2 * (1 + speedMag * 0.5);
+        }
+
+        // Robot arm animation — gentle idle sway and weapon holding
+        if (this.robotArms && this.robotArms.length > 0) {
+          for (let ra = 0; ra < this.robotArms.length; ra++) {
+            const arm = this.robotArms[ra];
+            if (!arm) continue;
+            const phase = gameTime * 1.5 + ra * 1.2;
+            arm.rotation.x = Math.sin(phase) * 0.08;
+            arm.rotation.z = Math.cos(phase * 0.7) * 0.05;
+          }
         }
         
         // Breathing animation (subtle body scaling)

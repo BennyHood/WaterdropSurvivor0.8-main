@@ -179,7 +179,7 @@
   let _lakeParticleVelocities = [];
   let _lakeParticleLifetimes = [];
   const LAKE_PARTICLE_COUNT = 150;
-  const LAKE_POS = { x: 0, z: -40 }; // Waterdrop's ultimate goal, south of forest ring
+  const LAKE_POS = { x: 0, z: -52 }; // Large beautiful lake at the very north/top of map
   // Corruption level last applied (0–3) – used to detect tier transitions
   let _lastCorruptionLevel = -1;
   // Tree glitch timer
@@ -282,7 +282,7 @@
     while (_buildingObservers.length) _buildingObservers.pop().disconnect();
     _campScene = new THREE.Scene();
     _campScene.background = new THREE.Color(0x0a0c18); // deep night sky
-    _campScene.fog = new THREE.FogExp2(0x120e08, 0.025); // warm hearth fog
+    _campScene.fog = new THREE.FogExp2(0x120e08, 0.035); // heavy fog/mist for culling
 
     // ── Lighting ────────────────────────────────────────────
     // Warmer dim ambient – cozy sky light
@@ -323,6 +323,15 @@
 
     // ── Surrounding trees / scenery ─────────────────────────
     _buildAmbientForest();
+
+    // ── Pooled fence around absolute map edge ───────────────
+    _buildMapFence();
+
+    // ── Spawn elevator (black cylinder with gold contours) ──
+    _buildSpawnElevator();
+
+    // ── Extra trees, branches, logs, and grass patches ──────
+    _buildExtraVegetation();
 
     // ── Small reflection pond near campfire ─────────────────
     _buildCampPond();
@@ -862,20 +871,263 @@
     }
   }
 
-  // ── Lake — Waterdrop's ultimate goal, beyond the forest ring ──
+  // ── Pooled fence around absolute map edge (wooden slanted stakes + wall) ──
+  // Uses a single InstancedMesh pool for all stakes to minimize draw calls.
+  function _buildMapFence() {
+    const THREE = T();
+    const MAP_RADIUS = 55;
+    const STAKE_COUNT = 120;
+    const stakeGeo = new THREE.CylinderGeometry(0.08, 0.14, 2.8, 6);
+    const stakeMat = new THREE.MeshPhongMaterial({
+      color: 0x5c3a1e,
+      emissive: 0x1a0e04,
+      emissiveIntensity: 0.08,
+      shininess: 8,
+    });
+    const stakePool = new THREE.InstancedMesh(stakeGeo, stakeMat, STAKE_COUNT);
+    stakePool.castShadow = true;
+    const _mat4 = new THREE.Matrix4();
+    const _pos = new THREE.Vector3();
+    const _quat = new THREE.Quaternion();
+    const _scale = new THREE.Vector3();
+
+    for (let i = 0; i < STAKE_COUNT; i++) {
+      const angle = (i / STAKE_COUNT) * Math.PI * 2;
+      const x = Math.sin(angle) * MAP_RADIUS;
+      const z = Math.cos(angle) * MAP_RADIUS;
+      const slant = 0.15 + Math.random() * 0.1; // slight outward lean
+      _pos.set(x, 1.2, z);
+      _quat.setFromAxisAngle(new THREE.Vector3(-Math.cos(angle), 0, Math.sin(angle)), slant);
+      _scale.set(0.8 + Math.random() * 0.4, 0.9 + Math.random() * 0.3, 0.8 + Math.random() * 0.4);
+      _mat4.compose(_pos, _quat, _scale);
+      stakePool.setMatrixAt(i, _mat4);
+    }
+    stakePool.instanceMatrix.needsUpdate = true;
+    _campScene.add(stakePool);
+
+    // Horizontal crossbar wall ring (two rings at different heights)
+    for (let h = 0; h < 2; h++) {
+      const ringY = 0.6 + h * 1.0;
+      const ringGeo = new THREE.TorusGeometry(MAP_RADIUS, 0.06, 4, STAKE_COUNT);
+      const ringMat = new THREE.MeshPhongMaterial({
+        color: 0x4a2e14,
+        emissive: 0x0e0804,
+        emissiveIntensity: 0.05,
+        shininess: 5,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = ringY;
+      ring.castShadow = true;
+      _campScene.add(ring);
+    }
+  }
+
+  // ── Spawn elevator – black cylinder with gold/silver contours ──
+  function _buildSpawnElevator() {
+    const THREE = T();
+    const ELEV_POS = { x: 0, y: 0, z: 6 }; // near spawn point
+
+    // Main cylinder body — matte black, partially submerged
+    const bodyGeo = new THREE.CylinderGeometry(1.2, 1.2, 3.0, 24, 1, true); // open-ended
+    const bodyMat = new THREE.MeshPhongMaterial({
+      color: 0x0a0a0a,
+      emissive: 0x050505,
+      emissiveIntensity: 0.05,
+      shininess: 30,
+      side: THREE.DoubleSide,
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    body.position.set(ELEV_POS.x, ELEV_POS.y - 0.5, ELEV_POS.z);
+    _campScene.add(body);
+
+    // Gold contour rings
+    for (let r = 0; r < 3; r++) {
+      const ringGeo = new THREE.TorusGeometry(1.22, 0.03, 8, 32);
+      const ringMat = new THREE.MeshPhongMaterial({
+        color: 0xccaa44,
+        emissive: 0x665520,
+        emissiveIntensity: 0.3,
+        shininess: 100,
+        specular: 0xffdd88,
+      });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.set(ELEV_POS.x, ELEV_POS.y - 0.8 + r * 0.8, ELEV_POS.z);
+      _campScene.add(ring);
+    }
+
+    // Door contour lines (silver vertical strips)
+    const doorGeo = new THREE.BoxGeometry(0.04, 2.0, 0.04);
+    const doorMat = new THREE.MeshPhongMaterial({
+      color: 0xaaaaaa,
+      emissive: 0x444444,
+      emissiveIntensity: 0.2,
+      shininess: 80,
+      specular: 0xffffff,
+    });
+    for (let d = 0; d < 2; d++) {
+      const doorLine = new THREE.Mesh(doorGeo, doorMat);
+      const dx = (d === 0 ? -0.35 : 0.35);
+      doorLine.position.set(ELEV_POS.x + dx, ELEV_POS.y, ELEV_POS.z + 1.2);
+      _campScene.add(doorLine);
+    }
+    // Horizontal door frame
+    const framGeo = new THREE.BoxGeometry(0.74, 0.04, 0.04);
+    const topFrame = new THREE.Mesh(framGeo, doorMat);
+    topFrame.position.set(ELEV_POS.x, ELEV_POS.y + 0.95, ELEV_POS.z + 1.2);
+    _campScene.add(topFrame);
+  }
+
+  // ── Extra trees, branches, logs, and grass patches ──
+  // Carefully placed to avoid overlapping existing structures.
+  function _buildExtraVegetation() {
+    const THREE = T();
+
+    // ─ Fallen logs (pooled via InstancedMesh) ─
+    const logGeo = new THREE.CylinderGeometry(0.12, 0.16, 2.4, 8);
+    const logMat = new THREE.MeshPhongMaterial({
+      color: 0x3d2208,
+      emissive: 0x1e1104,
+      emissiveIntensity: 0.08,
+      shininess: 8,
+    });
+    const LOG_DATA = [
+      { x: 12, z: -8, ry: 0.4 },
+      { x: -15, z: -12, ry: 1.2 },
+      { x: 20, z: 5, ry: -0.7 },
+      { x: -22, z: 10, ry: 2.1 },
+      { x: 8, z: -25, ry: 0.9 },
+      { x: -10, z: -30, ry: 1.8 },
+    ];
+    const logPool = new THREE.InstancedMesh(logGeo, logMat, LOG_DATA.length);
+    const _m4 = new THREE.Matrix4();
+    const _p = new THREE.Vector3();
+    const _q = new THREE.Quaternion();
+    const _s = new THREE.Vector3(1, 1, 1);
+    for (let i = 0; i < LOG_DATA.length; i++) {
+      const d = LOG_DATA[i];
+      _p.set(d.x, 0.08, d.z);
+      _q.setFromAxisAngle(new THREE.Vector3(0, 0, 1), Math.PI / 2);
+      _q.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), d.ry));
+      _m4.compose(_p, _q, _s);
+      logPool.setMatrixAt(i, _m4);
+    }
+    logPool.instanceMatrix.needsUpdate = true;
+    logPool.castShadow = true;
+    _campScene.add(logPool);
+
+    // ─ Extra scattered trees (inner ring, between buildings) ─
+    // Shared geometry and materials to minimize draw-call / material state changes
+    const extraTreeColors = [0x1a4010, 0x143810, 0x0e2808, 0x2a5818];
+    const _sharedTrunkGeo = new THREE.CylinderGeometry(0.15, 0.22, 1.8, 6);
+    const _sharedTrunkMat = new THREE.MeshPhongMaterial({ color: 0x3d2208, emissive: 0x1e1104, emissiveIntensity: 0.1, shininess: 10 });
+    const _sharedCanopyGeos = [
+      new THREE.ConeGeometry(1.2, 1.6, 7),
+      new THREE.ConeGeometry(0.9, 1.3, 7),
+    ];
+    const _sharedCanopyMats = extraTreeColors.map(function (col) {
+      return new THREE.MeshPhongMaterial({ color: col, emissive: col, emissiveIntensity: 0.12, shininess: 25 });
+    });
+    const EXTRA_TREES = [
+      { x: 18, z: -18, s: 0.8 },
+      { x: -16, z: -22, s: 1.0 },
+      { x: 22, z: 12, s: 0.7 },
+      { x: -20, z: 15, s: 0.9 },
+      { x: 5, z: -35, s: 1.1 },
+      { x: -8, z: -38, s: 0.85 },
+      { x: 25, z: -5, s: 0.75 },
+      { x: -25, z: -8, s: 0.95 },
+    ];
+    for (let i = 0; i < EXTRA_TREES.length; i++) {
+      const t = EXTRA_TREES[i];
+      const grp = new THREE.Group();
+      grp.position.set(t.x, 0, t.z);
+      // Trunk — shared geometry + material, scaled per instance
+      const trunk = new THREE.Mesh(_sharedTrunkGeo, _sharedTrunkMat);
+      trunk.scale.setScalar(t.s);
+      trunk.position.y = 0.9 * t.s;
+      trunk.castShadow = true;
+      grp.add(trunk);
+      // Canopy — shared geometries + materials, scaled per instance
+      const canopyMat = _sharedCanopyMats[i % _sharedCanopyMats.length];
+      for (let c = 0; c < 2; c++) {
+        const canopy = new THREE.Mesh(_sharedCanopyGeos[c], canopyMat);
+        canopy.scale.setScalar(t.s);
+        canopy.position.y = (1.8 + c * 1.0) * t.s;
+        canopy.castShadow = true;
+        grp.add(canopy);
+      }
+      _campScene.add(grp);
+    }
+
+    // ─ Grass patches (pooled InstancedMesh) ─
+    const bladeGeo = new THREE.PlaneGeometry(0.08, 0.35);
+    const grassMat = new THREE.MeshPhongMaterial({
+      color: 0x2a5c18,
+      emissive: 0x0a2008,
+      emissiveIntensity: 0.08,
+      side: THREE.DoubleSide,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false,
+    });
+    const GRASS_COUNT = 200;
+    const grassPool = new THREE.InstancedMesh(bladeGeo, grassMat, GRASS_COUNT);
+    for (let g = 0; g < GRASS_COUNT; g++) {
+      const angle = Math.random() * Math.PI * 2;
+      const r = 5 + Math.random() * 42;
+      const gx = Math.sin(angle) * r;
+      const gz = Math.cos(angle) * r;
+      // Skip if too close to lake or campfire center
+      const distToLake = Math.sqrt((gx - LAKE_POS.x) * (gx - LAKE_POS.x) + (gz - LAKE_POS.z) * (gz - LAKE_POS.z));
+      const distToCenter = Math.sqrt(gx * gx + gz * gz);
+      if (distToLake < 24 || distToCenter < 4) { // skip, leave identity matrix (hidden at origin)
+        _m4.makeScale(0, 0, 0);
+        grassPool.setMatrixAt(g, _m4);
+        continue;
+      }
+      _p.set(gx, 0.15, gz);
+      _q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.random() * Math.PI);
+      _s.set(0.8 + Math.random() * 0.5, 0.7 + Math.random() * 0.6, 1);
+      _m4.compose(_p, _q, _s);
+      grassPool.setMatrixAt(g, _m4);
+    }
+    grassPool.instanceMatrix.needsUpdate = true;
+    _campScene.add(grassPool);
+
+    // ─ Branches (small fallen twigs, pooled) ─
+    const branchGeo = new THREE.CylinderGeometry(0.02, 0.04, 0.8, 4);
+    const branchMat = new THREE.MeshPhongMaterial({ color: 0x4a3018, shininess: 5 });
+    const BRANCH_COUNT = 30;
+    const branchPool = new THREE.InstancedMesh(branchGeo, branchMat, BRANCH_COUNT);
+    for (let b = 0; b < BRANCH_COUNT; b++) {
+      const bAngle = Math.random() * Math.PI * 2;
+      const bR = 6 + Math.random() * 38;
+      _p.set(Math.sin(bAngle) * bR, 0.02, Math.cos(bAngle) * bR);
+      _q.setFromEuler(new THREE.Euler(Math.random() * 0.3, Math.random() * Math.PI, Math.PI / 2 + Math.random() * 0.2));
+      _s.set(1, 1, 1);
+      _m4.compose(_p, _q, _s);
+      branchPool.setMatrixAt(b, _m4);
+    }
+    branchPool.instanceMatrix.needsUpdate = true;
+    _campScene.add(branchPool);
+  }
+
+  // ── Lake — Large beautiful lake at the very north/top of the map ──
   function _buildLake() {
     const THREE = T();
 
-    // Dark-blue reflective lake surface with enhanced moon reflection
-    const lakeGeo = new THREE.CircleGeometry(12, 48);
+    // Large dark-blue reflective lake surface with enhanced moon reflection
+    const lakeGeo = new THREE.CircleGeometry(20, 64);
     const lakeMat = new THREE.MeshPhongMaterial({
       color: 0x1a3a5c,
       emissive: 0x0d1d2e,
-      emissiveIntensity: 0.15,
-      shininess: 120,  // Increased shininess for better moon reflection
-      specular: 0x88aaff,  // Add specular highlight for moon reflection
+      emissiveIntensity: 0.18,
+      shininess: 140,
+      specular: 0x88aaff,
       transparent: true,
-      opacity: 0.88,
+      opacity: 0.90,
     });
     _lakeMesh = new THREE.Mesh(lakeGeo, lakeMat);
     _lakeMesh.rotation.x = -Math.PI / 2;
@@ -883,13 +1135,13 @@
     _lakeMesh.receiveShadow = false;
     _campScene.add(_lakeMesh);
 
-    // Enhanced blue lake glow with warmer tint
-    _lakeLight = new THREE.PointLight(0x3388cc, 1.5, 28, 2);
+    // Enhanced blue lake glow
+    _lakeLight = new THREE.PointLight(0x3388cc, 2.0, 40, 2);
     _lakeLight.position.set(LAKE_POS.x, 2, LAKE_POS.z);
     _campScene.add(_lakeLight);
 
-    // Shore ring – slightly lighter circle around the lake
-    const shoreGeo = new THREE.RingGeometry(12, 14, 48);
+    // Shore ring – larger to match new lake size
+    const shoreGeo = new THREE.RingGeometry(20, 23, 64);
     const shoreMat = new THREE.MeshPhongMaterial({
       color: 0x2a4010,
       emissive: 0x152008,
@@ -901,6 +1153,20 @@
     shore.rotation.x = -Math.PI / 2;
     shore.position.set(LAKE_POS.x, 0.005, LAKE_POS.z);
     _campScene.add(shore);
+
+    // Mist/fog layer hovering over lake for atmosphere and culling
+    const mistGeo = new THREE.PlaneGeometry(50, 50);
+    const mistMat = new THREE.MeshBasicMaterial({
+      color: 0x88aacc,
+      transparent: true,
+      opacity: 0.12,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+    });
+    const mist = new THREE.Mesh(mistGeo, mistMat);
+    mist.rotation.x = -Math.PI / 2;
+    mist.position.set(LAKE_POS.x, 0.8, LAKE_POS.z);
+    _campScene.add(mist);
   }
 
   // ── Lake binary-code particle system (active only at corruption tier 3) ──

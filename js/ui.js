@@ -212,3 +212,217 @@ function showYouDiedBanner(duration) {
   }, duration);
 }
 
+// ── SettingsMenu: full in-game settings ──────────────────────────────────────
+// Integrates with the existing window.gameSettings object and persists under
+// the same localStorage key ('waterDropSurvivorSettings') used by save-system.js
+// and settings-ui.js so all settings stay in sync.
+const _SETTINGS_KEY = 'waterDropSurvivorSettings';
+
+const SettingsMenu = {
+  _el: null,
+  _settings: null,
+
+  _defaults: {
+    resolution: 1.0,
+    graphicsPreset: 'medium',
+    shadows: 'medium',
+    motionBlur: 0.5,
+    bloom: 0.6,
+    vignette: 0.3,
+    antiAliasing: true,
+    masterVolume: 0.8,
+    sfxVolume: 0.7,
+    musicVolume: 0.5,
+    fogDensity: 0.025,
+    drawDistance: 120,
+  },
+
+  _load() {
+    try {
+      const s = localStorage.getItem(_SETTINGS_KEY);
+      const parsed = s ? JSON.parse(s) : {};
+      this._settings = Object.assign({}, this._defaults, parsed);
+    } catch (e) { this._settings = Object.assign({}, this._defaults); }
+  },
+
+  _save() {
+    try {
+      // Merge into existing settings blob so we don't clobber keys from other systems
+      let existing = {};
+      try { const raw = localStorage.getItem(_SETTINGS_KEY); if (raw) existing = JSON.parse(raw); } catch (_) {}
+      const merged = Object.assign(existing, this._settings);
+      localStorage.setItem(_SETTINGS_KEY, JSON.stringify(merged));
+    } catch (e) { /* non-fatal */ }
+  },
+
+  /** Sync SettingsMenu values into the runtime window.gameSettings object */
+  _syncToGameSettings() {
+    if (!window.gameSettings) return;
+    const s = this._settings;
+    window.gameSettings.quality = s.graphicsPreset;
+    window.gameSettings.soundEnabled = s.masterVolume > 0;
+    window.gameSettings.musicEnabled = s.musicVolume > 0;
+  },
+
+  _apply() {
+    const s = this._settings;
+
+    // ── Fog density / draw distance ──
+    if (window.scene && window.scene.fog) {
+      if (window.scene.fog.density !== undefined) window.scene.fog.density = s.fogDensity;
+      if (window.scene.fog.far !== undefined) window.scene.fog.far = s.drawDistance;
+    }
+
+    // ── Resolution scale — clamp final pixel ratio to 1.5 to preserve mobile perf ──
+    if (window.renderer) {
+      const maxPixelRatio = 1.5;
+      const base = Math.min(window.devicePixelRatio || 1, maxPixelRatio);
+      const pixelRatio = Math.min(base * s.resolution, maxPixelRatio);
+      window.renderer.setPixelRatio(pixelRatio);
+    }
+
+    // ── Shadows ──
+    if (window.renderer) {
+      if (s.shadows === 'off') {
+        window.renderer.shadowMap.enabled = false;
+      } else {
+        window.renderer.shadowMap.enabled = true;
+        // Adjust shadow map quality
+        const shadowSizes = { low: 512, medium: 1024, high: 2048 };
+        const shadowSize = shadowSizes[s.shadows] || 1024;
+        if (window.scene) {
+          window.scene.traverse(function (obj) {
+            if (obj.isLight && obj.shadow && obj.shadow.mapSize) {
+              obj.shadow.mapSize.setScalar(shadowSize);
+              if (obj.shadow.map) { obj.shadow.map.dispose(); obj.shadow.map = null; }
+            }
+          });
+        }
+      }
+    }
+
+    // ── Post-processing (bloom, vignette, motion blur) ──
+    // These integrate with the existing post-processing passes if available
+    if (window.bloomPass) {
+      window.bloomPass.strength = s.bloom;
+      window.bloomPass.enabled = s.bloom > 0;
+    }
+    if (window.vignettePass) {
+      window.vignettePass.uniforms.darkness.value = s.vignette * 2.0;
+      window.vignettePass.enabled = s.vignette > 0;
+    }
+    if (window.motionBlurPass) {
+      window.motionBlurPass.enabled = s.motionBlur > 0;
+      if (window.motionBlurPass.uniforms && window.motionBlurPass.uniforms.intensity) {
+        window.motionBlurPass.uniforms.intensity.value = s.motionBlur;
+      }
+    }
+
+    // ── Anti-aliasing (toggle FXAA pass if available) ──
+    if (window.fxaaPass) {
+      window.fxaaPass.enabled = !!s.antiAliasing;
+    }
+
+    // ── Volume ──
+    if (window.Howler) {
+      window.Howler.volume(s.masterVolume);
+    }
+    // Sync sfx/music volume into global audio state
+    if (window.AudioSystem) {
+      if (typeof window.AudioSystem.setSFXVolume === 'function') window.AudioSystem.setSFXVolume(s.sfxVolume);
+      if (typeof window.AudioSystem.setMusicVolume === 'function') window.AudioSystem.setMusicVolume(s.musicVolume);
+    }
+
+    // Keep window.gameSettings in sync
+    this._syncToGameSettings();
+    this._save();
+  },
+
+  open() {
+    if (!this._settings) this._load();
+    if (this._el) { this._el.style.display = 'flex'; return; }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'settings-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:10000;display:flex;align-items:center;justify-content:center;font-family:sans-serif;';
+
+    const panel = document.createElement('div');
+    panel.style.cssText = 'background:#1a1a2e;border:1px solid #444;border-radius:12px;padding:24px;color:#ddd;width:380px;max-height:80vh;overflow-y:auto;';
+
+    const title = document.createElement('h2');
+    title.textContent = '⚙️ Settings';
+    title.style.cssText = 'margin:0 0 16px;color:#ffcc00;text-align:center;';
+    panel.appendChild(title);
+
+    const s = this._settings;
+    const self = this;
+
+    function addSlider(label, key, min, max, step) {
+      const row = document.createElement('div');
+      row.style.cssText = 'margin-bottom:12px;';
+      const lbl = document.createElement('label');
+      lbl.style.cssText = 'display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;';
+      const valSpan = document.createElement('span');
+      valSpan.textContent = s[key].toFixed(step < 1 ? 2 : 0);
+      lbl.innerHTML = '<span>' + label + '</span>';
+      lbl.appendChild(valSpan);
+      row.appendChild(lbl);
+      const inp = document.createElement('input');
+      inp.type = 'range'; inp.min = min; inp.max = max; inp.step = step; inp.value = s[key];
+      inp.style.cssText = 'width:100%;accent-color:#ffcc00;';
+      inp.addEventListener('input', function () {
+        s[key] = parseFloat(this.value);
+        valSpan.textContent = s[key].toFixed(step < 1 ? 2 : 0);
+        self._apply();
+      });
+      row.appendChild(inp);
+      panel.appendChild(row);
+    }
+
+    function addSelect(label, key, options) {
+      const row = document.createElement('div');
+      row.style.cssText = 'margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;font-size:13px;';
+      row.innerHTML = '<span>' + label + '</span>';
+      const sel = document.createElement('select');
+      sel.style.cssText = 'background:#2a2a3e;color:#ddd;border:1px solid #555;border-radius:4px;padding:2px 6px;';
+      options.forEach(function (o) {
+        const opt = document.createElement('option');
+        opt.value = o; opt.textContent = o.charAt(0).toUpperCase() + o.slice(1);
+        if (s[key] === o) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', function () { s[key] = this.value; self._apply(); });
+      row.appendChild(sel);
+      panel.appendChild(row);
+    }
+
+    // Build UI controls
+    addSlider('Resolution Scale', 'resolution', 0.5, 1.5, 0.1);
+    addSelect('Graphics Preset', 'graphicsPreset', ['low', 'medium', 'high', 'ultra']);
+    addSelect('Shadows', 'shadows', ['off', 'low', 'medium', 'high']);
+    addSlider('Motion Blur', 'motionBlur', 0, 1, 0.05);
+    addSlider('Bloom', 'bloom', 0, 1, 0.05);
+    addSlider('Vignette', 'vignette', 0, 1, 0.05);
+    addSlider('Master Volume', 'masterVolume', 0, 1, 0.05);
+    addSlider('SFX Volume', 'sfxVolume', 0, 1, 0.05);
+    addSlider('Music Volume', 'musicVolume', 0, 1, 0.05);
+    addSlider('Fog Density', 'fogDensity', 0, 0.1, 0.005);
+    addSlider('Draw Distance', 'drawDistance', 40, 200, 5);
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    closeBtn.style.cssText = 'display:block;margin:16px auto 0;padding:8px 32px;background:#ffcc00;color:#000;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px;';
+    closeBtn.addEventListener('click', function () { overlay.style.display = 'none'; });
+    panel.appendChild(closeBtn);
+
+    overlay.appendChild(panel);
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) overlay.style.display = 'none'; });
+    document.body.appendChild(overlay);
+    this._el = overlay;
+  },
+
+  close() { if (this._el) this._el.style.display = 'none'; },
+};
+window.SettingsMenu = SettingsMenu;
+

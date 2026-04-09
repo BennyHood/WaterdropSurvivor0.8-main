@@ -5541,30 +5541,72 @@
     if (!player || !player.mesh) return;
     const gunGroup = new THREE.Group();
 
-    // Barrel (long thin cylinder)
-    const barrelGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.45, 8);
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x555566, roughness: 0.4, metalness: 0.8 });
+    // Barrel (slightly shorter for smaller revolver)
+    const barrelGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.38, 8);
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x555566, roughness: 0.35, metalness: 0.85 });
     const barrel = new THREE.Mesh(barrelGeo, metalMat);
     barrel.rotation.z = Math.PI / 2;
-    barrel.position.set(0.22, 0, 0);
+    barrel.position.set(0.19, 0, 0);
     gunGroup.add(barrel);
 
-    // Cylinder (revolver drum)
-    const drumGeo = new THREE.CylinderGeometry(0.075, 0.075, 0.15, 12);
-    const drumMat = new THREE.MeshStandardMaterial({ color: 0x887766, roughness: 0.5, metalness: 0.7 });
+    // Cylinder (revolver drum) – hyper-realistic copper bullets with silver primer
+    const drumGeo = new THREE.CylinderGeometry(0.065, 0.065, 0.13, 12);
+    const drumMat = new THREE.MeshStandardMaterial({ color: 0xaa7744, roughness: 0.4, metalness: 0.75 });
     const drum = new THREE.Mesh(drumGeo, drumMat);
     drum.rotation.z = Math.PI / 2;
-    drum.position.set(0.05, -0.02, 0);
+    drum.position.set(0.04, -0.015, 0);
     gunGroup.add(drum);
 
-    // Grip/Handle
-    const gripGeo = new THREE.BoxGeometry(0.08, 0.22, 0.06);
+    // Copper bullet tips visible in drum chambers
+    for (let b = 0; b < 5; b++) {
+      const bAngle = (b / 5) * Math.PI * 2;
+      const bulletGeo = new THREE.CylinderGeometry(0.012, 0.015, 0.04, 6);
+      const bulletMat = new THREE.MeshStandardMaterial({ color: 0xcc8844, roughness: 0.3, metalness: 0.9 });
+      const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+      bullet.rotation.z = Math.PI / 2;
+      bullet.position.set(0.09, -0.015 + Math.sin(bAngle) * 0.035, Math.cos(bAngle) * 0.035);
+      gunGroup.add(bullet);
+      // Silver primer pin on bullet base
+      const primerGeo = new THREE.CircleGeometry(0.006, 6);
+      const primerMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, roughness: 0.2, metalness: 0.95 });
+      const primer = new THREE.Mesh(primerGeo, primerMat);
+      primer.position.set(0.068, -0.015 + Math.sin(bAngle) * 0.035, Math.cos(bAngle) * 0.035);
+      primer.rotation.y = Math.PI / 2;
+      gunGroup.add(primer);
+    }
+
+    // Eye of Horus engraving on drum side (simplified geometric representation)
+    const horusGeo = new THREE.RingGeometry(0.018, 0.024, 6);
+    const horusMat = new THREE.MeshStandardMaterial({
+      color: 0xddbb44,
+      roughness: 0.2,
+      metalness: 0.9,
+      side: THREE.DoubleSide,
+    });
+    const horus = new THREE.Mesh(horusGeo, horusMat);
+    horus.position.set(0.04, -0.015, 0.066);
+    gunGroup.add(horus);
+    // Eye pupil
+    const pupilGeo = new THREE.CircleGeometry(0.01, 6);
+    const pupil = new THREE.Mesh(pupilGeo, horusMat);
+    pupil.position.set(0.04, -0.015, 0.067);
+    gunGroup.add(pupil);
+    // Horus teardrop line
+    const tearGeo = new THREE.PlaneGeometry(0.006, 0.025);
+    const tear = new THREE.Mesh(tearGeo, horusMat);
+    tear.position.set(0.04, -0.035, 0.067);
+    gunGroup.add(tear);
+
+    // Grip/Handle (wooden, smaller)
+    const gripGeo = new THREE.BoxGeometry(0.07, 0.18, 0.05);
     const gripMat = new THREE.MeshStandardMaterial({ color: 0x4A2E1A, roughness: 0.9, metalness: 0.0 });
     const grip = new THREE.Mesh(gripGeo, gripMat);
-    grip.position.set(-0.06, -0.14, 0);
+    grip.position.set(-0.05, -0.12, 0);
     grip.rotation.z = -0.15;
     gunGroup.add(grip);
 
+    // Whole revolver a bit smaller
+    gunGroup.scale.setScalar(0.85);
     gunGroup.position.set(_gunOffset.x, _gunOffset.y, _gunOffset.z);
     gunGroup.castShadow = true;
 
