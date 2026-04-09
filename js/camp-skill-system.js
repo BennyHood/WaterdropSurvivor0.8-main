@@ -3136,6 +3136,33 @@
           progressTutorialQuest('quest_buildQuesthall', true);
         }
 
+        // ACHIEVEMENT: "Built your First Camp Building" — triggers on first ever building
+        if (!saveData._firstBuildAchieved) {
+          saveData._firstBuildAchieved = true;
+          if (typeof saveSaveData === 'function') saveSaveData();
+          // Slight delay so build celebration finishes first
+          setTimeout(function() {
+            if (window._showAchievementToast) {
+              window._showAchievementToast('Built your First Camp Building!', [
+                '🪨 +5 Stone',
+                '🪵 +5 Wood',
+                '🪙 +50 Gold',
+                '⭐ +100 XP'
+              ], function() {
+                // Grant the rewards after OK press
+                if (saveData.resources) {
+                  saveData.resources.stone = (saveData.resources.stone || 0) + 5;
+                  saveData.resources.wood  = (saveData.resources.wood  || 0) + 5;
+                }
+                saveData.gold = (saveData.gold || 0) + 50;
+                if (typeof addAccountXP === 'function') addAccountXP(100);
+                else if (typeof window.addAccountXP === 'function') window.addAccountXP(100);
+                if (typeof saveSaveData === 'function') saveSaveData();
+              });
+            }
+          }, 1500);
+        }
+
         // Activate pending quest now that building is built
         if (saveData.tutorialQuests && saveData.tutorialQuests.pendingBuildBuilding === buildingId && saveData.tutorialQuests.pendingBuildQuest) {
           var pendingQuestId = saveData.tutorialQuests.pendingBuildQuest;
