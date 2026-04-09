@@ -245,7 +245,11 @@
       if (window.BloodSystem && typeof BloodSystem.emitWaterBurst === 'function') {
         BloodSystem.emitWaterBurst({ x: pos.x, y: pos.y, z: pos.z }, 1, { spreadXZ: 0.3, spreadY: 0.2 });
       } else if (window.BloodSimulatorV21) {
-        window.BloodSimulatorV21.rawBurst(pos.x, pos.y, pos.z, 1, { spreadXZ: 0.3, spreadY: 0.2 });
+        window.BloodSimulatorV21.rawBurst(pos.x, pos.y, pos.z, 1, {
+          spreadXZ: 0.3,
+          spreadY: 0.2,
+          color: 0x00bfff
+        });
       }
     };
   }
@@ -275,7 +279,7 @@
       // Reset blood/gore systems after a short delay so the death scene stays visible briefly
       setTimeout(function () {
         if (window.BloodV2 && typeof window.BloodV2.reset === 'function') window.BloodV2.reset();
-        // BloodSimulatorV21 drops clear naturally via pool recycling
+        if (window.BloodSimulatorV21 && typeof window.BloodSimulatorV21.reset === 'function') window.BloodSimulatorV21.reset();
         if (window.GoreSim && typeof window.GoreSim.reset === 'function') window.GoreSim.reset();
         if (window.SlimePool && typeof window.SlimePool.reset === 'function') window.SlimePool.reset();
         if (window.WaveSpawner && typeof window.WaveSpawner.reset === 'function') window.WaveSpawner.reset();
@@ -2038,7 +2042,7 @@
           burstOpts.spdMax = 22;
           extraFx = function() {
             if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.1, z, 50, { spreadXZ: 11, spreadY: 14, viscosity: 0.50 });
+              window.BloodSimulatorV21.rawBurst(x, y + 0.1, z, 50, { spreadXZ: 11, spreadY: 14, viscosity: 0.50, enemyType: 'slime' });
             }
           };
         } else if (killVariant === 2) {
@@ -2058,7 +2062,7 @@
         } else if (killVariant === 1) {
           extraFx = function() {
             if (window.BloodSimulatorV21) {
-              window.BloodSimulatorV21.rawBurst(x, y + 0.15, z, 35, { spreadXZ: 9, spreadY: 16, viscosity: 0.62 });
+              window.BloodSimulatorV21.rawBurst(x, y + 0.15, z, 35, { spreadXZ: 9, spreadY: 16, viscosity: 0.62, enemyType: 'slime' });
             }
           };
         } else {
@@ -2090,7 +2094,7 @@
 
     // Hollywood-style overdone slime death burst
     if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color });
+      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color, enemyType: burstOpts.enemyType });
     } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, burstCount, burstOpts);
     }
@@ -2360,7 +2364,7 @@
 
     // Hollywood-style overdone crawler death burst
     if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color });
+      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color, enemyType: burstOpts.enemyType });
     } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, burstCount, burstOpts);
     }
@@ -2673,7 +2677,7 @@
 
     // Light-blue gore burst
     if (window.BloodSimulatorV21) {
-      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color });
+      window.BloodSimulatorV21.rawBurst(x, y, z, burstCount, { spreadXZ: burstOpts.spdMax || 9, spreadY: (burstOpts.spdMax || 9) * 1.2, viscosity: burstOpts.visc || 0.62, color: burstOpts.color, enemyType: burstOpts.enemyType });
     } else if (window.BloodV2 && typeof BloodV2.rawBurst === 'function') {
       BloodV2.rawBurst(x, y, z, burstCount, burstOpts);
     } else if (window.BloodSystem) {
@@ -6550,7 +6554,11 @@
   function _initBloodSystem() {
     // NEW BLOOD SIMULATOR V2.1 – terrain-aware + full fantasy realism
     if (window.BloodSimulatorV21 && typeof BloodSimulatorV21.init === 'function') {
-      window.BloodSimulatorV21.init(scene, null, player ? player.mesh : null);
+      const terrainMesh =
+        window._engine2Instance && window._engine2Instance.groundMesh
+          ? window._engine2Instance.groundMesh
+          : null;
+      window.BloodSimulatorV21.init(scene, terrainMesh, player ? player.mesh : null);
     }
     if (window.GoreSim && typeof window.GoreSim.init === 'function') {
       window.GoreSim.init(scene, camera);

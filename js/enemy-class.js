@@ -126,7 +126,8 @@
         if (_eb) return _eb.base;
       }
       return 0xcc1100;
-    }    const ENEMY_INSTANCING_ENABLED = window.ENEMY_INSTANCING_ENABLED === true;
+    }
+    const ENEMY_INSTANCING_ENABLED = window.ENEMY_INSTANCING_ENABLED === true;
 
     // ── Shared enemy projectile resources — created once, reused by every enemy shot ──────────
     // Previously fireProjectile() created a new SphereGeometry + MeshBasicMaterial on EVERY
@@ -1898,7 +1899,8 @@
         // Blood system: directional spray on heavy hits
         if (window.BloodSimulatorV21 && isHeavyHit) {
           const isShotgunHit = SHOTGUN_TYPES.includes(damageType);
-          window.BloodSimulatorV21.onEnemyHit(this, this.mesh.position, 'projectile');
+          window.BloodSimulatorV21.onEnemyHit(this, this.mesh.position,
+            isShotgunHit ? 'projectile' : 'melee');
         } else if (window.BloodSystem && isHeavyHit) {
           const isShotgunHit = SHOTGUN_TYPES.includes(damageType);
           window.BloodSystem.emitBurst(this.mesh.position, isShotgunHit ? 60 : 30, { spreadXZ: 0.8, spreadY: 0.2, minSize: 0.01, maxSize: 0.06, minLife: 20, maxLife: 50 });
