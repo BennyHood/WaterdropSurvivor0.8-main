@@ -115,6 +115,7 @@ var _v1 = new THREE.Vector3();
 var _v2 = new THREE.Vector3();
 var _v3 = new THREE.Vector3();
 var _col = new THREE.Color();
+var _whiteCol = new THREE.Color(1, 1, 1); // PERF FIX: pre-allocated white for lerp
 
 // ════════════════════════════════════════════════
 //  WOUND OBJECT — pre-allocated, no GC
@@ -281,13 +282,36 @@ if (this.eyeL) { this.eyeL.visible = true; this.eyeR.visible = true; }
 
 // ── MAIN UPDATE ───────────────────────────────
 SlimeEnemy.prototype.update = function(dt, playerPos) {
-if (!this.alive || !this.mesh) return;
+if (!this.alive && !this._sinkTimer) { return; }
+if (!this.mesh) return;
+
+// ── PERF FIX: Post-death sink-and-shrink (replaces setInterval fade)
+if (this._sinkTimer > 0 || this._sinkDuration > 0) {
+if (this._sinkDuration > 0) {
+this._sinkTimer += dt;
+var st = Math.min(this._sinkTimer / this._sinkDuration, 1.0);
+// Shrink + sink into ground (no transparency = no GPU overdraw)
+var shrink = 1.0 - st * 0.8;
+this.mesh.scale.set(this.scale * 1.6 * shrink, 0.05 * shrink, this.scale * 1.6 * shrink);
+this.mesh.position.y = 0.015 - st * 0.3;
+if (st >= 1.0) {
+this._sinkDuration = 0;
+this._sinkTimer = 0;
+this._cleanup();
+return;
+}
+}
+return;
+}
 
 // ── Death animation
 if (this.dying) {
 this._updateDeath(dt);
 return;
 }
+
+// ── PERF FIX: Update frame-driven hit-animation tweens (replaces setInterval)
+this._updateHitTweens(dt);
 
 // ── Squish recovery
 if (this.squishTimer > 0) {
@@ -302,7 +326,7 @@ if (this.flashTimer > 0) {
 this.flashTimer -= dt;
 var f = this.flashTimer / 0.12;
 _col.setHex(SLIME_COLORS.healthy);
-_col.lerp(new THREE.Color(1,1,1), f);
+_col.lerp(_whiteCol, f);
 this.mesh.material.color.copy(_col);
 } else {
 // Colour by health
@@ -726,6 +750,29 @@ this._takedownReaction(pos);
 //  HIT REACTION IMPLEMENTATIONS
 // ════════════════════════════════════════════════
 
+// ── PERF FIX: Frame-driven tween system (replaces all setInterval hit animations)
+// Each slime can have multiple concurrent tweens. Each tween has:
+//   { elapsed:0, duration:X, onTick:fn(t), onDone:fn() }
+// Updated every frame in update() — zero OS timer overhead.
+SlimeEnemy.prototype._addTween = function(duration, onTick, onDone) {
+if (!this._tweenTimers) this._tweenTimers = [];
+this._tweenTimers.push({ elapsed: 0, duration: duration, onTick: onTick, onDone: onDone || null });
+};
+
+SlimeEnemy.prototype._updateHitTweens = function(dt) {
+if (!this._tweenTimers || this._tweenTimers.length === 0) return;
+for (var i = this._tweenTimers.length - 1; i >= 0; i--) {
+var tw = this._tweenTimers[i];
+tw.elapsed += dt;
+var t = Math.min(tw.elapsed / tw.duration, 1.0);
+if (tw.onTick) tw.onTick(t);
+if (t >= 1.0) {
+if (tw.onDone) tw.onDone();
+this._tweenTimers.splice(i, 1);
+}
+}
+};
+
 // Simple forward flinch
 SlimeEnemy.prototype._flinchReaction = function(pos, scale) {
 if (!this.mesh) return;
@@ -743,33 +790,32 @@ this.squishTimer  = 0.35;
 this.squishAmount = 0.35 * scale;
 };
 
-// Shudder — rapid micro-oscillation
+// Shudder — rapid micro-oscillation (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._shudderReaction = function(pos, scale) {
 if (!this.mesh) return;
 var self = this;
-var count = 0;
 var maxCount = 6;
-var shudder = setInterval(function() {
-if (!self.mesh || count >= maxCount) { clearInterval(shudder); if (self.mesh) self.mesh.rotation.z = 0; return; }
-self.mesh.rotation.z = (count % 2 === 0 ? 1 : -1) * 0.08 * scale;
-count++;
-}, 35);
+var stepDur = 0.035; // 35ms per step
+this._addTween(maxCount * stepDur, function(t) {
+var count = Math.floor(t * maxCount);
+if (self.mesh) self.mesh.rotation.z = (count % 2 === 0 ? 1 : -1) * 0.08 * scale;
+}, function() { if (self.mesh) self.mesh.rotation.z = 0; });
 };
 
-// Lurch backward
+// Lurch backward (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._lurchReaction = function(pos, scale) {
 if (!this.mesh) return;
 var self = this;
 this.mesh.rotation.x = 0.25 * scale;
-setTimeout(function() {
-if (!self.mesh) return;
-var t = 0;
-var recover = setInterval(function() {
-t += 0.15;
-if (t >= 1.0 || !self.mesh) { clearInterval(recover); if (self.mesh) self.mesh.rotation.x = 0; return; }
-self.mesh.rotation.x = 0.25 * scale * (1.0 - t);
-}, 16);
-}, 80);
+// Delayed recovery tween
+this._addTween(0.08 + 0.16, function(t) {
+// First 0.08s = delay, then 0.16s recovery
+var totalDur = 0.08 + 0.16;
+if (t < 0.08 / totalDur) return;
+var recT = (t - 0.08 / totalDur) / (0.16 / totalDur);
+recT = Math.min(recT, 1.0);
+if (self.mesh) self.mesh.rotation.x = 0.25 * scale * (1.0 - recT);
+}, function() { if (self.mesh) self.mesh.rotation.x = 0; });
 };
 
 // Stumble — stagger sideways
@@ -786,18 +832,16 @@ setTimeout(function() { if (self.mesh) self.mesh.rotation.z = 0; }, 120);
 }, 150);
 };
 
-// Spin stagger — brain/head hit
+// Spin stagger — brain/head hit (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._spinStaggerReaction = function(pos, scale) {
 if (!this.mesh) return;
 var self  = this;
 var startY = this.mesh.rotation.y;
-var t      = 0;
-var spin   = setInterval(function() {
-t += 0.08;
-if (t >= 1.0 || !self.mesh) { clearInterval(spin); return; }
+this._addTween(0.2, function(t) {
+if (!self.mesh) return;
 self.mesh.rotation.y = startY + Math.sin(t * Math.PI) * 0.6 * scale;
 self.mesh.rotation.z = Math.sin(t * Math.PI * 3) * 0.15 * scale;
-}, 16);
+});
 };
 
 // Through-shot reaction — bullet goes through
@@ -845,20 +889,19 @@ self.mesh.rotation.z = orig.z;
 }, 80);
 };
 
-// Multi-impact — shotgun pellets
+// Multi-impact — shotgun pellets (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._multiImpactReaction = function(pos, count, scale) {
 if (!this.mesh) return;
 var self = this;
-var i = 0;
-var multi = setInterval(function() {
-if (i >= count || !self.mesh) { clearInterval(multi); return; }
-self.mesh.rotation.z += (Math.random()-0.5) * 0.12 * scale;
-self.mesh.rotation.x += (Math.random()-0.5) * 0.08 * scale;
-i++;
-}, 20);
-setTimeout(function() {
-if (self.mesh) { self.mesh.rotation.z = 0; self.mesh.rotation.x = 0; }
-}, count * 20 + 80);
+var stepDur = 0.020; // 20ms per step
+this._addTween(count * stepDur + 0.08, function(t) {
+var totalDur = count * stepDur + 0.08;
+var elapsed = t * totalDur;
+if (elapsed < count * stepDur && self.mesh) {
+self.mesh.rotation.z += (Math.random()-0.5) * 0.03 * scale;
+self.mesh.rotation.x += (Math.random()-0.5) * 0.02 * scale;
+}
+}, function() { if (self.mesh) { self.mesh.rotation.z = 0; self.mesh.rotation.x = 0; } });
 };
 
 // Gut shot — forward slump
@@ -876,36 +919,33 @@ self.mesh.scale.setScalar(self.scale);
 }, 300);
 };
 
-// Heart blast — pump starts, convulsion
+// Heart blast — pump starts, convulsion (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._heartBlastReaction = function(pos) {
 if (!this.mesh) return;
 var self  = this;
-var count = 0;
-var conv  = setInterval(function() {
-if (count >= 8 || !self.mesh) { clearInterval(conv); if (self.mesh) { self.mesh.rotation.z = 0; } return; }
+this._addTween(0.32, function(t) {
+if (!self.mesh) return;
+var count = Math.floor(t * 8);
 self.mesh.rotation.z = Math.sin(count * 1.5) * 0.22;
-self.mesh.position.y += Math.sin(count) * 0.03;
-count++;
-}, 40);
+self.mesh.position.y += Math.sin(count) * 0.003;
+}, function() { if (self.mesh) self.mesh.rotation.z = 0; });
 this._startPumpWound('heart');
 };
 
-// Big spin-throw
+// Big spin-throw (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._spinThrowReaction = function(pos, dir, scale) {
 if (!this.mesh) return;
 var self   = this;
 var startY = this.mesh.rotation.y;
-var t      = 0;
 var bx     = dir ? dir.x : (Math.random()-0.5);
 var bz     = dir ? dir.z : (Math.random()-0.5);
 this.pushX += bx * 2.5 * scale;
 this.pushZ += bz * 2.5 * scale;
-var spin = setInterval(function() {
-t += 0.05;
-if (t >= 1.0 || !self.mesh) { clearInterval(spin); return; }
+this._addTween(0.32, function(t) {
+if (!self.mesh) return;
 self.mesh.rotation.y = startY + t * Math.PI * 2 * scale;
 self.mesh.rotation.z = Math.sin(t * Math.PI) * 0.4;
-}, 16);
+});
 };
 
 // Devastation — for high-level shotgun
@@ -958,7 +998,7 @@ this._startPumpWound('heart');
 this._shudderReaction(pos, 1.2);
 };
 
-// Explosion reaction — huge push + spin
+// Explosion reaction — huge push + spin (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._explosionReaction = function(pos, dir, force) {
 if (!this.mesh) return;
 var bx = dir ? dir.x : (Math.random()-0.5)*2;
@@ -968,13 +1008,11 @@ this.pushZ += bz * force * 0.3;
 this.squishTimer  = 0.8;
 this.squishAmount = 0.9;
 var self = this;
-var t = 0;
-var explSpin = setInterval(function() {
-t += 0.06;
-if (t >= 1.0 || !self.mesh) { clearInterval(explSpin); return; }
-self.mesh.rotation.y += 0.18 * (1.0 - t);
+this._addTween(0.27, function(t) {
+if (!self.mesh) return;
+self.mesh.rotation.y += 0.18 * (1.0 - t) * 0.06;
 self.mesh.rotation.z = Math.sin(t * Math.PI * 4) * 0.5 * (1.0-t);
-}, 16);
+});
 };
 
 // Laser — barely reacts, just smokes
@@ -1005,16 +1043,14 @@ this.mesh.scale.set(this.scale * 0.95, this.scale * 1.08, this.scale * 0.95);
 setTimeout(function() { if (self.mesh) self.mesh.scale.setScalar(self.scale); }, 180);
 };
 
-// Knife to heart — starts arterial pump, body seizes
+// Knife to heart — starts arterial pump, body seizes (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._knifeHeartReaction = function(pos) {
 this._startPumpWound('heart');
 if (!this.mesh) return;
 var self = this;
-var freeze = setInterval(function() {
-if (!self.mesh) { clearInterval(freeze); return; }
-self.mesh.rotation.z = Math.sin(Date.now() * 0.015) * 0.12;
-}, 20);
-setTimeout(function() { clearInterval(freeze); if (self.mesh) self.mesh.rotation.z = 0; }, 800);
+this._addTween(0.8, function(t) {
+if (self.mesh) self.mesh.rotation.z = Math.sin(t * 0.8 * 50 * 0.015 * 1000 * t) * 0.12 * (1.0 - t);
+}, function() { if (self.mesh) self.mesh.rotation.z = 0; });
 };
 
 // Knife to brain — instant drop effect
@@ -1061,33 +1097,31 @@ var self = this;
 setTimeout(function() { if (self.mesh && self.alive) self.mesh.material.color.setHex(SLIME_COLORS.hurt); }, 600);
 };
 
-// Lightning — convulsion
+// Lightning — convulsion (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._lightningHitReaction = function(pos, wlvl) {
 if (!this.mesh) return;
 var self  = this;
-var count = 0;
 this.mesh.material.color.setHex(0xffffcc);
-var arc = setInterval(function() {
-if (count >= 10 || !self.mesh) { clearInterval(arc); if (self.mesh && self.alive) self.mesh.material.color.setHex(SLIME_COLORS.hurt); return; }
+this._addTween(0.3, function(t) {
+if (!self.mesh) return;
+var count = Math.floor(t * 10);
 self.mesh.rotation.z = (count%2===0?1:-1) * 0.25;
-self.mesh.position.y += (count%2===0 ? 0.05 : -0.05);
-count++;
-}, 30);
+self.mesh.position.y += (count%2===0 ? 0.005 : -0.005);
+}, function() { if (self.mesh && self.alive) self.mesh.material.color.setHex(SLIME_COLORS.hurt); });
 };
 
-// Desperate wobble — near-death general
+// Desperate wobble — near-death general (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._desperateWobble = function(pos) {
 if (!this.mesh) return;
 var self  = this;
-var count = 0;
-var wob   = setInterval(function() {
-if (count >= 8 || !self.mesh) { clearInterval(wob); if (self.mesh) self.mesh.rotation.z = 0; return; }
+this._addTween(0.36, function(t) {
+if (!self.mesh) return;
+var count = Math.floor(t * 8);
 self.mesh.rotation.z = Math.sin(count * 0.9) * 0.18;
-count++;
-}, 45);
+}, function() { if (self.mesh) self.mesh.rotation.z = 0; });
 };
 
-// Takedown reaction
+// Takedown reaction (PERF FIX: uses frame tween instead of setInterval)
 SlimeEnemy.prototype._takedownReaction = function(pos) {
 if (!this.mesh) return;
 var self = this;
@@ -1096,13 +1130,11 @@ this.speed = 0;
 this.state = 'pinned';
 this.mesh.rotation.x = 0.3;
 // Gradual lean and settle
-var t = 0;
-var lean = setInterval(function() {
-t += 0.04;
-if (t >= 1.0 || !self.mesh) { clearInterval(lean); return; }
+this._addTween(0.4, function(t) {
+if (!self.mesh) return;
 self.mesh.rotation.x = 0.3 + t * 0.3;
 self.mesh.scale.set(self.scale*(1+t*0.1), self.scale*(1-t*0.15), self.scale*(1+t*0.1));
-}, 16);
+});
 };
 
 // ════════════════════════════════════════════════
@@ -1564,7 +1596,6 @@ var GRAVITY = -9.81;
 //  CLEANUP
 // ════════════════════════════════════════════════
 SlimeEnemy.prototype._finishDeath = function() {
-var self = this;
 if (this.mesh) {
 // Flatten onto ground
 if (this.deathStyle !== 'vaporize' && this.deathStyle !== 'freeze_shatter') {
@@ -1572,29 +1603,26 @@ this.mesh.scale.set(this.scale * 1.6, 0.05, this.scale * 1.6);
 this.mesh.position.y = 0.015;
 this.mesh.rotation.z = 0;
 }
-// Fade out
-var fadeStart = Date.now();
-var fade = setInterval(function() {
-if (!self.mesh) { clearInterval(fade); return; }
-var t = (Date.now() - fadeStart) / 2500;
-if (t >= 1.0) { clearInterval(fade); self._fadeInterval = null; self._cleanup(); return; }
-self.mesh.material.opacity = 1.0 - t;
-self.mesh.material.transparent = true;
-}, 50);
-this._fadeInterval = fade;
+// PERF FIX: Use sink-and-shrink instead of opacity fade to avoid transparent overdraw.
+// Tracked in game-loop update() via _sinkTimer instead of setInterval.
+this._sinkTimer = 0;
+this._sinkDuration = 1.5; // seconds to sink into ground
 } else {
 this._cleanup();
 }
 };
 
 SlimeEnemy.prototype._cleanup = function() {
-// Cancel any in-flight fade interval
-if (this._fadeInterval) { clearInterval(this._fadeInterval); this._fadeInterval = null; }
+// PERF FIX: No more setInterval fade — just reset state
+this._sinkTimer = 0;
+this._sinkDuration = 0;
 this.alive  = false;
 this.dying  = false;
 this.active = false;
 this._deathSlideVX = 0;
 this._deathSlideVZ = 0;
+// Reset all hit-anim tween state
+this._tweenTimers = null;
 if (this.mesh) { this.mesh.visible = false; this.mesh.material.opacity = 1.0; this.mesh.material.transparent = false; }
 if (this.shadowMesh) this.shadowMesh.visible = false;
 if (this.eyeL) { this.eyeL.visible = false; this.eyeR.visible = false; }
