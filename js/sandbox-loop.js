@@ -1128,8 +1128,8 @@
       st.id = 'hud-session-timer';
       st.style.cssText = [
         'position:fixed',
-        'top:12px',
-        'left:16px',
+        'top:88px',
+        'left:10px',
         'color:rgba(255,215,55,0.9)',
         'font-family:Bangers,cursive',
         'font-size:14px',

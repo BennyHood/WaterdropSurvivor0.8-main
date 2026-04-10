@@ -62,7 +62,7 @@ DECAL_COUNT:      _bsMobile ? 80 : 200,   // ground blood decals  (pooled Mesh)
 WOUND_PER_ENEMY:  8,     // max wounds on one enemy body
 STREAM_COUNT:     _bsMobile ? 8 : 16,     // arterial pump streams
 GRAVITY:         -16.0,
-GROUND_Y:         0.0,
+GROUND_Y:         0.01,   // small offset above ground plane to prevent z-fighting
 DECAL_FADE:       _bsMobile ? 120.0 : 300.0,  // shorter decal life on mobile for perf
 DRIP_RATE:        0.15,  // seconds between wound drips (base)
 PUMP_RATE:        0.05,  // seconds between arterial pumps
