@@ -221,11 +221,11 @@
   let _incubatorInteracted = false; // guard against duplicate interactions this session
 
   // ── A.I.D.A Intro — Broken Robot + Chip ──────────────────
-  // Placed near the campfire so first-time players discover them naturally.
-  // AIDA_ROBOT_POS: robot waits beside the campfire until the Quest Hall is built.
+  // Broken robot sits directly beside the campfire (south side).
+  // Chip is placed clearly to the north of the fire so it's easy to spot.
   // After Quest Hall is built (level > 0) AND chip inserted, robot moves inside.
-  const AIDA_ROBOT_POS  = { x: 3, z: -1 };   // beside campfire (south-east)
-  const AIDA_CHIP_POS   = { x: 4, z: -2.5 }; // chip nearby, slightly further from fire
+  const AIDA_ROBOT_POS  = { x: 2, z: 2 };    // directly by campfire (south side)
+  const AIDA_CHIP_POS   = { x: 0, z: -5 };   // north of fire — clearly visible open area
   const AIDA_QUEST_HALL_POS = { x: 0, z: 11.5 }; // in front of Quest Hall (z:13) once built
   const AIDA_INTRO_RADIUS      = 5.0;   // Generous radius so the interaction is easy to trigger
   const AIDA_CHIP_MAGNET_RANGE = 2.0;   // Distance at which chip starts flying toward player
@@ -247,6 +247,7 @@
     chipPickedUp: false,
     chipInserted: false,
   };
+  let _robotBubbleEl  = null;  // floating speech bubble DOM element above robot
 
   // Keyboard state (managed inside this module)
   let _keys = {};
@@ -1807,6 +1808,61 @@
     });
   }
 
+  // ── Robot floating speech bubble ─────────────────────────────
+  // Shown above the broken robot before the chip is picked up, so players know what to do.
+  function _ensureRobotBubble() {
+    if (_robotBubbleEl) return;
+    _robotBubbleEl = document.createElement('div');
+    _robotBubbleEl.id = 'camp-robot-bubble';
+    _robotBubbleEl.style.cssText = [
+      'position:fixed', 'z-index:220', 'padding:10px 18px', 'border-radius:14px',
+      'background:rgba(0,20,30,0.92)', 'border:2px solid rgba(0,204,255,0.7)',
+      'box-shadow:0 0 16px rgba(0,170,255,0.4)',
+      'font-family:"Courier New",monospace', 'font-size:13px', 'color:#00eeff',
+      'max-width:260px', 'text-align:center', 'pointer-events:none', 'display:none',
+      'transform:translate(-50%,-100%)',
+      'text-shadow:0 0 8px rgba(0,204,255,0.6)',
+      'animation:dsCinFadeIn 0.4s ease-out forwards',
+    ].join(';');
+    // Glowing tail
+    const tail = document.createElement('div');
+    tail.style.cssText = [
+      'position:absolute', 'bottom:-10px', 'left:50%', 'transform:translateX(-50%)',
+      'width:0', 'height:0',
+      'border-left:8px solid transparent', 'border-right:8px solid transparent',
+      'border-top:10px solid rgba(0,204,255,0.7)',
+    ].join(';');
+    const span = document.createElement('span');
+    span.textContent = 'Help me! Start up me using the chip inside camp somewhere';
+    _robotBubbleEl.appendChild(span);
+    _robotBubbleEl.appendChild(tail);
+    document.body.appendChild(_robotBubbleEl);
+  }
+
+  function _updateRobotBubble() {
+    // Show only when chip not yet picked up and robot mesh exists and no menu open
+    const shouldShow = !_aidaIntroState.chipPickedUp && !!_aidaRobotMesh && !_menuOpen && !window._suppressAidaBubbles;
+    if (!shouldShow) {
+      if (_robotBubbleEl) _robotBubbleEl.style.display = 'none';
+      return;
+    }
+    _ensureRobotBubble();
+    if (!_campCamera) { _robotBubbleEl.style.display = 'none'; return; }
+    const THREE = T();
+    if (!THREE) { _robotBubbleEl.style.display = 'none'; return; }
+    if (!_campUITmpVec) _campUITmpVec = new THREE.Vector3();
+    _campUITmpVec.copy(_aidaRobotMesh.position);
+    _campUITmpVec.y += 2.2;
+    _campUITmpVec.project(_campCamera);
+    // Only show when in front of camera
+    if (_campUITmpVec.z > 1.0) { _robotBubbleEl.style.display = 'none'; return; }
+    const sx = (_campUITmpVec.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-_campUITmpVec.y * 0.5 + 0.5) * window.innerHeight;
+    _robotBubbleEl.style.left = sx + 'px';
+    _robotBubbleEl.style.top  = sy + 'px';
+    _robotBubbleEl.style.display = 'block';
+  }
+
   // Per-frame update for Aida intro props (chip glow + proximity prompts)
   function _updateAidaIntro(dt) {
     if (!_campScene) return;
@@ -1827,6 +1883,9 @@
         _robotMesh.rotation.y = 0;
       }
     }
+
+    // ─ Robot speech bubble — visible before chip is picked up ─
+    _updateRobotBubble();
 
     // ─ Chip float + glow animation + magnet ─
     if (!_aidaIntroState.chipPickedUp && _aidaChipMesh && _aidaChipMesh.visible) {
@@ -1872,10 +1931,10 @@
       const cdx = _playerPos.x - _aidaChipMesh.position.x;
       const cdz = _playerPos.z - _aidaChipMesh.position.z;
       if (Math.sqrt(cdx * cdx + cdz * cdz) < AIDA_INTRO_RADIUS) {
-        _promptEl.textContent = '💾 Aida Chip — Pick up [E]';
+        _promptEl.textContent = '💾 A.I.D.A Chip';
         _promptEl.style.display = 'block';
         if (_interactBtn) {
-          _interactBtn.textContent = 'PICK UP';
+          _interactBtn.textContent = 'Take up chip';
           _interactBtn.style.background = 'linear-gradient(135deg,#0088cc,#004466)';
           _interactBtn.style.display = 'block';
         }
@@ -1890,10 +1949,10 @@
       const rdx = _playerPos.x - _rp.x;
       const rdz = _playerPos.z - _rp.z;
       if (Math.sqrt(rdx * rdx + rdz * rdz) < AIDA_INTRO_RADIUS) {
-        _promptEl.textContent = '🤖 Broken Robot — Insert Chip [E]';
+        _promptEl.textContent = '🤖 Broken Robot — A.I.D.A Chip Slot';
         _promptEl.style.display = 'block';
         if (_interactBtn) {
-          _interactBtn.textContent = 'INSERT';
+          _interactBtn.textContent = 'Insert chip into robot 🤖 chip slot';
           _interactBtn.style.background = 'linear-gradient(135deg,#00cc66,#006633)';
           _interactBtn.style.display = 'block';
         }
@@ -1905,7 +1964,7 @@
       const rdx = _playerPos.x - _rp.x;
       const rdz = _playerPos.z - _rp.z;
       if (Math.sqrt(rdx * rdx + rdz * rdz) < AIDA_INTRO_RADIUS) {
-        _promptEl.textContent = '🤖 A.I.D.A — Go to Quest Hall! [E]';
+        _promptEl.textContent = '🤖 A.I.D.A — Go to Quest Hall!';
         _promptEl.style.display = 'block';
         if (_interactBtn) {
           _interactBtn.textContent = 'QUEST HALL';
@@ -1934,7 +1993,7 @@
     if (DS) DS.show(DS.DIALOGUES.aidaChipFound);
 
     if (typeof showStatusMessage === 'function') {
-      showStatusMessage('💾 Aida Chip acquired — bring it to the broken robot!', 3000);
+      showStatusMessage('Go and find the broken robot in the south area of the camp.', 4000);
     }
   }
 
@@ -2204,9 +2263,9 @@
     if (!completed.includes('quest_findingAida')) {
       // Give a hint appropriate to whether the chip has been picked up yet
       if (!_aidaIntroState.chipPickedUp) {
-        hint = { text: '> A glowing chip lies near the campfire. Pick it up.', emotion: 'smoky' };
+        hint = { text: '> A glowing chip lies north of the campfire. Pick it up.', emotion: 'smoky' };
       } else {
-        hint = { text: '> Chip acquired. Insert it into the broken robot unit nearby.', emotion: 'smoky' };
+        hint = { text: '> Chip acquired. Insert it into the broken robot unit by the campfire.', emotion: 'smoky' };
       }
     } else if (!completed.includes('quest_buildQuesthall') && current === 'quest_buildQuesthall') {
       hint = { text: '> Directive: construct the Command Node. Starter materials have been provided. Walk to the plot and build.', emotion: 'task' };
@@ -6081,12 +6140,12 @@
         'right:6%',
         'background:linear-gradient(135deg,#c8a248 0%,#8b6914 60%,#5c4509 100%)',
         'border:2px solid rgba(255,215,0,0.7)',
-        'border-radius:14px',
-        'width:76px',
-        'height:76px',
+        'border-radius:50%',
+        'width:84px',
+        'height:84px',
         'color:#fff8e0',
         'font-family:"Bangers",cursive',
-        'font-size:17px',
+        'font-size:14px',
         'font-weight:bold',
         'display:none',
         'z-index:80',
@@ -7383,7 +7442,7 @@
     var storyText = '';
     if (cq === 'quest_findingAida') {
       if (!_aidaIntroState.chipPickedUp) {
-        storyText = '📜 Quest 1 — Investigate that glowing chip near the campfire...';
+        storyText = '📜 Quest 1 — Find the glowing chip north of the campfire...';
       } else if (!_aidaIntroState.chipInserted) {
         storyText = '📜 Quest 1 — Insert the chip into the broken robot...';
       } else {

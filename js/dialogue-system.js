@@ -127,9 +127,9 @@ window.DialogueSystem = (function () {
     ],
     // A.I.D.A Chip discovery — fires when player picks up the chip from the ground near the broken robot
     aidaChipFound: [
-      { text: '> ——static——  ...signal detected...  ——static——', emotion: 'smoky', cinematic: true },
-      { text: '> ...unit offline... awaiting reintegration...', emotion: 'smoky', cinematic: true },
-      { text: '> ...insert chip into the robot unit... nearby...', emotion: 'thinking', cinematic: true }
+      { text: '> ——static——  ...signal detected...  ——static——', emotion: 'smoky', cinematic: true, chipVisual: true },
+      { text: '> ...unit offline... awaiting reintegration...', emotion: 'smoky', cinematic: true, chipVisual: true },
+      { text: '> ...insert chip into the robot unit... nearby...', emotion: 'thinking', cinematic: true, chipVisual: true }
     ],
     // AIDA wakes from the robot (chip inserted into robot — NOT into player yet)
     aidaRobotWake: [
@@ -298,10 +298,15 @@ window.DialogueSystem = (function () {
         '@keyframes dsCinFadeOut{from{opacity:1}to{opacity:0}}',
         '@keyframes dsCinSlideUp{from{transform:translate(-50%,-50%) translateY(18px);opacity:0}to{transform:translate(-50%,-50%);opacity:1}}',
         '@keyframes dsCinTapPulse{0%,100%{opacity:0.55}50%{opacity:1}}',
-        '@keyframes dsCinScanMove{from{background-position:0 0}to{background-position:0 4px}}'
+        '@keyframes dsCinScanMove{from{background-position:0 0}to{background-position:0 4px}}',
+        '@keyframes dsChipSpin{from{transform:rotateY(0deg) rotateX(20deg)}to{transform:rotateY(360deg) rotateX(20deg)}}',
+        '@keyframes dsChipGlow{0%,100%{box-shadow:0 0 20px rgba(0,204,255,0.6),0 0 40px rgba(0,120,255,0.3)}50%{box-shadow:0 0 35px rgba(0,204,255,1),0 0 70px rgba(0,120,255,0.6)}}'
       ].join('');
       document.head.appendChild(sty);
     }
+
+    // Detect whether this dialogue has a chip visual (aidaChipFound)
+    var hasChipVisual = dialogueArray.some(function (s) { return !!s.chipVisual; });
 
     // Build overlay
     var ov = document.createElement('div');
@@ -358,10 +363,68 @@ window.DialogueSystem = (function () {
     ].join(';');
     hierBot.textContent = '𓃭 𓆣 𓁿 𓂀 𓃭 𓆣 𓁿 𓂀 𓃭 𓆣 𓁿 𓂀';
 
-    // Content box — centred, 60% of screen height max
+    // 3D rotating chip visual — shown only for aidaChipFound cinematic
+    if (hasChipVisual) {
+      var chipScene = document.createElement('div');
+      chipScene.style.cssText = [
+        'position:absolute','top:22%','left:50%','transform:translateX(-50%)',
+        'perspective:400px','z-index:4','pointer-events:none',
+        'display:flex','flex-direction:column','align-items:center','gap:12px'
+      ].join(';');
+      var chipWrapper = document.createElement('div');
+      chipWrapper.style.cssText = [
+        'width:90px','height:66px','transform-style:preserve-3d',
+        'animation:dsChipSpin 3s linear infinite'
+      ].join(';');
+      var chipFace = document.createElement('div');
+      chipFace.style.cssText = [
+        'width:90px','height:66px','border-radius:8px','position:relative',
+        'background:linear-gradient(135deg,#001833 0%,#003366 40%,#002244 100%)',
+        'border:2px solid rgba(0,204,255,0.9)',
+        'animation:dsChipGlow 2s ease-in-out infinite'
+      ].join(';');
+      // Chip circuit lines (decorative)
+      var lines = ['top:20%;left:10%;width:30%;height:2px',
+                   'top:50%;left:10%;width:20%;height:2px',
+                   'top:70%;left:10%;width:25%;height:2px',
+                   'top:20%;right:10%;width:30%;height:2px',
+                   'top:50%;right:10%;width:20%;height:2px',
+                   'top:70%;right:10%;width:25%;height:2px'];
+      lines.forEach(function (s) {
+        var l = document.createElement('div');
+        l.style.cssText = 'position:absolute;background:rgba(0,204,255,0.7);border-radius:1px;' + s;
+        chipFace.appendChild(l);
+      });
+      // Center diamond
+      var diamond = document.createElement('div');
+      diamond.style.cssText = [
+        'position:absolute','top:50%','left:50%',
+        'width:16px','height:16px',
+        'transform:translate(-50%,-50%) rotate(45deg)',
+        'background:rgba(0,204,255,0.9)',
+        'box-shadow:0 0 12px rgba(0,204,255,1)'
+      ].join(';');
+      chipFace.appendChild(diamond);
+      chipWrapper.appendChild(chipFace);
+      chipScene.appendChild(chipWrapper);
+      // Label under chip
+      var chipLabel = document.createElement('div');
+      chipLabel.style.cssText = [
+        'font-family:"Courier New",monospace','font-size:11px',
+        'color:rgba(0,204,255,0.7)','letter-spacing:4px','text-transform:uppercase',
+        'text-shadow:0 0 8px rgba(0,204,255,0.5)'
+      ].join(';');
+      chipLabel.textContent = 'A.I.D.A — CORE MODULE';
+      chipScene.appendChild(chipLabel);
+      ov.appendChild(chipScene);
+    }
+
+    // Content box — shifted down when chip visual is shown
     var box = document.createElement('div');
     box.style.cssText = [
-      'position:absolute','top:50%','left:50%',
+      'position:absolute',
+      hasChipVisual ? 'top:68%' : 'top:50%',
+      'left:50%',
       'transform:translate(-50%,-50%)',
       'width:min(680px,88vw)','z-index:4',
       'display:flex','flex-direction:column','gap:14px',
