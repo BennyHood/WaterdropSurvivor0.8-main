@@ -1822,7 +1822,7 @@
       'max-width:260px', 'text-align:center', 'pointer-events:none', 'display:none',
       'transform:translate(-50%,-100%)',
       'text-shadow:0 0 8px rgba(0,204,255,0.6)',
-      'animation:dsCinFadeIn 0.4s ease-out forwards',
+      'opacity:0', 'transition:opacity 0.4s ease-out',
     ].join(';');
     // Glowing tail
     const tail = document.createElement('div');
@@ -1833,7 +1833,7 @@
       'border-top:10px solid rgba(0,204,255,0.7)',
     ].join(';');
     const span = document.createElement('span');
-    span.textContent = 'Help me! Start up me using the chip inside camp somewhere';
+    span.textContent = 'Help me! Find the chip north of the campfire and use it to start me up.';
     _robotBubbleEl.appendChild(span);
     _robotBubbleEl.appendChild(tail);
     document.body.appendChild(_robotBubbleEl);
@@ -1843,24 +1843,26 @@
     // Show only when chip not yet picked up and robot mesh exists and no menu open
     const shouldShow = !_aidaIntroState.chipPickedUp && !!_aidaRobotMesh && !_menuOpen && !window._suppressAidaBubbles;
     if (!shouldShow) {
-      if (_robotBubbleEl) _robotBubbleEl.style.display = 'none';
+      if (_robotBubbleEl) { _robotBubbleEl.style.opacity = '0'; _robotBubbleEl.style.display = 'none'; }
       return;
     }
     _ensureRobotBubble();
-    if (!_campCamera) { _robotBubbleEl.style.display = 'none'; return; }
+    if (!_campCamera) { _robotBubbleEl.style.opacity = '0'; _robotBubbleEl.style.display = 'none'; return; }
     const THREE = T();
-    if (!THREE) { _robotBubbleEl.style.display = 'none'; return; }
+    if (!THREE) { _robotBubbleEl.style.opacity = '0'; _robotBubbleEl.style.display = 'none'; return; }
     if (!_campUITmpVec) _campUITmpVec = new THREE.Vector3();
     _campUITmpVec.copy(_aidaRobotMesh.position);
     _campUITmpVec.y += 2.2;
     _campUITmpVec.project(_campCamera);
     // Only show when in front of camera
-    if (_campUITmpVec.z > 1.0) { _robotBubbleEl.style.display = 'none'; return; }
+    if (_campUITmpVec.z > 1.0) { _robotBubbleEl.style.opacity = '0'; _robotBubbleEl.style.display = 'none'; return; }
     const sx = (_campUITmpVec.x * 0.5 + 0.5) * window.innerWidth;
     const sy = (-_campUITmpVec.y * 0.5 + 0.5) * window.innerHeight;
     _robotBubbleEl.style.left = sx + 'px';
     _robotBubbleEl.style.top  = sy + 'px';
     _robotBubbleEl.style.display = 'block';
+    // Trigger fade-in via opacity (transition:opacity 0.4s defined in cssText)
+    requestAnimationFrame(function () { if (_robotBubbleEl) _robotBubbleEl.style.opacity = '1'; });
   }
 
   // Per-frame update for Aida intro props (chip glow + proximity prompts)
@@ -1931,10 +1933,10 @@
       const cdx = _playerPos.x - _aidaChipMesh.position.x;
       const cdz = _playerPos.z - _aidaChipMesh.position.z;
       if (Math.sqrt(cdx * cdx + cdz * cdz) < AIDA_INTRO_RADIUS) {
-        _promptEl.textContent = '💾 A.I.D.A Chip';
+        _promptEl.textContent = '💾 A.I.D.A Chip — Press [E] to pick up';
         _promptEl.style.display = 'block';
         if (_interactBtn) {
-          _interactBtn.textContent = 'Take up chip';
+          _interactBtn.textContent = 'Pick up chip';
           _interactBtn.style.background = 'linear-gradient(135deg,#0088cc,#004466)';
           _interactBtn.style.display = 'block';
         }
@@ -1949,10 +1951,10 @@
       const rdx = _playerPos.x - _rp.x;
       const rdz = _playerPos.z - _rp.z;
       if (Math.sqrt(rdx * rdx + rdz * rdz) < AIDA_INTRO_RADIUS) {
-        _promptEl.textContent = '🤖 Broken Robot — A.I.D.A Chip Slot';
+        _promptEl.textContent = '🤖 Broken Robot — Insert chip into robot chip slot [E]';
         _promptEl.style.display = 'block';
         if (_interactBtn) {
-          _interactBtn.textContent = 'Insert chip into robot 🤖 chip slot';
+          _interactBtn.textContent = 'INSERT';
           _interactBtn.style.background = 'linear-gradient(135deg,#00cc66,#006633)';
           _interactBtn.style.display = 'block';
         }

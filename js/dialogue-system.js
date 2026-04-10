@@ -125,7 +125,7 @@ window.DialogueSystem = (function () {
       { text: '> Harvest resources: fell trees, mine rock deposits, collect materials.', emotion: 'goal', isGoal: true },
       { text: '> Return with raw materials. Construction of the next node depends on you.', emotion: 'task' }
     ],
-    // A.I.D.A Chip discovery — fires when player picks up the chip from the ground near the broken robot
+    // A.I.D.A Chip discovery — fires when player picks up the chip from north of the campfire
     aidaChipFound: [
       { text: '> ——static——  ...signal detected...  ——static——', emotion: 'smoky', cinematic: true, chipVisual: true },
       { text: '> ...unit offline... awaiting reintegration...', emotion: 'smoky', cinematic: true, chipVisual: true },
