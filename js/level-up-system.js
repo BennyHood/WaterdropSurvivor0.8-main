@@ -1997,6 +1997,11 @@ window.spawnBossChest = function(x, z) {
 
       // ── Helper: actually show the modal (called after explosion FX completes) ──
       function _doShowModal() {
+        // Guard: bail if game ended during the FX delay (prevents post-death modal)
+        if (isGameOver || !isGameActive) {
+          levelUpPending = false;
+          return;
+        }
         modal.style.display = 'flex';
         modal.style.opacity = '0';
         const existingAnimation = modal.style.animation || (window.getComputedStyle ? window.getComputedStyle(modal).animation : '') || '';
