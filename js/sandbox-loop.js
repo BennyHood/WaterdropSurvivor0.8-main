@@ -281,10 +281,17 @@
 
       // Award kill XP + survival bonus via addAccountXP so it lands in saveData.accountXP
       // and currentRunStats.xpAccumulated (both read by RunEndScreen).
-      // GameAccount.addXP is not available in sandbox (idle-account.js not loaded).
       var _killXP = _runKills * 2;
       var _survivalBonus = Math.min(50, Math.floor(_runKills * (1 + _elapsedSec / 60)));
       if (typeof addAccountXP === 'function') addAccountXP(_killXP + _survivalBonus);
+      // FIX: Also route end-of-run XP to GameAccount so both systems stay in sync
+      if (window.GameAccount && typeof window.GameAccount.addXP === 'function') {
+        var _gaResult = window.GameAccount.addXP(_killXP + _survivalBonus, 'Run Complete', saveData);
+        // Store level-up info for camp arrival notification
+        if (_gaResult && _gaResult.leveledUp) {
+          window._pendingAccountLevelUp = _gaResult;
+        }
+      }
 
       // Reset blood/gore systems after a short delay so the death scene stays visible briefly
       setTimeout(function () {

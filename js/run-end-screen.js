@@ -528,7 +528,17 @@ window.RunEndScreen = (function () {
     var flash = document.getElementById('res-level-up-flash');
     if (flash) {
       flash.style.display = 'block';
-      flash.textContent   = '⬆️ LEVEL UP! › ' + newLevel;
+      // DOPAMINE HIT: Green "Profile Level Up" text with glow + reward preview
+      flash.innerHTML = '<div style="font-size:28px;color:#00ff66;text-shadow:0 0 20px #00ff66,0 0 40px #00cc44;letter-spacing:3px;font-family:Bangers,cursive;">⬆️ PROFILE LEVEL UP!</div>' +
+        '<div style="font-size:20px;color:#FFD700;margin-top:6px;">Level ' + newLevel + '</div>';
+      // Show what they earned
+      var rewardCycle = (newLevel - 1) % 4;
+      var rewardText = '';
+      if (rewardCycle === 0) rewardText = '+1 Attribute Point';
+      else if (rewardCycle === 1) rewardText = '+1 Skill Point';
+      else if (rewardCycle === 2) rewardText = '+1 Training Point';
+      else rewardText = '+100 Gold';
+      flash.innerHTML += '<div style="font-size:14px;color:#aaffaa;margin-top:8px;font-family:sans-serif;">' + rewardText + '</div>';
       if (typeof playSound === 'function') {
         try { playSound('levelup'); } catch (e) { /* ignore */ }
       }
@@ -542,7 +552,7 @@ window.RunEndScreen = (function () {
       setTimeout(function () {
         if (flash) flash.style.display = 'none';
         if (onDone) onDone();
-      }, 900);
+      }, 1500); // Extended display time for dopamine
     } else {
       if (onDone) onDone();
     }

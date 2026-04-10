@@ -6140,7 +6140,7 @@
 
     ui.addEventListener('click', function(e) {
       e.stopPropagation();
-      _toggleWaterBot();
+      _showProfileModal();
     });
 
     _updateCampProfile();
@@ -6158,20 +6158,181 @@
       nameEl.textContent = (sd.playerName || 'UNIT-001').toUpperCase();
     }
     if (levelEl) {
-      const lvl = sd.level || 1;
-      const kills = sd.totalKills || 0;
+      // FIX: Use accountLevel (permanent profile level) instead of in-run level
+      const accLvl = sd.accountLevel || (sd.account && sd.account.level) || 1;
+      // Get rank from GameAccount milestones if available
       let rank = 'RECRUIT';
-      if (kills >= 1000) rank = 'COMMANDER';
-      else if (kills >= 300) rank = 'WARRIOR';
-      else if (kills >= 100) rank = 'FIGHTER';
-      else if (kills >= 30) rank = 'SOLDIER';
-      levelEl.textContent = 'LVL ' + lvl + ' · ' + rank;
+      if (window.GameAccount && window.GameAccount.getMilestones) {
+        var milestones = window.GameAccount.getMilestones();
+        for (var mi = milestones.length - 1; mi >= 0; mi--) {
+          if (milestones[mi].level <= accLvl) {
+            rank = milestones[mi].title || rank;
+            break;
+          }
+        }
+      } else {
+        // Fallback kill-based rank
+        var kills = sd.totalKills || 0;
+        if (kills >= 1000) rank = 'COMMANDER';
+        else if (kills >= 300) rank = 'WARRIOR';
+        else if (kills >= 100) rank = 'FIGHTER';
+        else if (kills >= 30) rank = 'SOLDIER';
+      }
+      levelEl.textContent = 'LVL ' + accLvl + ' · ' + rank;
     }
     if (badge) {
       const tq = sd.tutorialQuests;
       const hasNew = tq && tq.readyToClaim && tq.readyToClaim.length > 0;
       badge.style.display = hasNew ? 'flex' : 'none';
     }
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Profile Modal — opens when clicking the profile UI (not WaterBot)
+  // Contains settings, profile border, linked rank/level, name, and 7-day welcome
+  // ──────────────────────────────────────────────────────────
+  function _showProfileModal() {
+    // Close existing if open
+    var existing = document.getElementById('camp-profile-modal');
+    if (existing) { existing.remove(); _menuOpen = false; return; }
+
+    _menuOpen = true;
+    _menuOpenTs = Date.now();
+    var sd = (typeof saveData !== 'undefined') ? saveData : null;
+    var accLvl = (sd && sd.accountLevel) || (sd && sd.account && sd.account.level) || 1;
+    var playerName = (sd && sd.playerName) || 'UNIT-001';
+    // Get rank
+    var rank = 'RECRUIT';
+    if (window.GameAccount && window.GameAccount.getMilestones) {
+      var milestones = window.GameAccount.getMilestones();
+      for (var mi = milestones.length - 1; mi >= 0; mi--) {
+        if (milestones[mi].level <= accLvl) { rank = milestones[mi].title || rank; break; }
+      }
+    }
+    var rankColor = '#FFD700';
+    if (window.GameAccount && window.GameAccount.getRankColor) {
+      rankColor = window.GameAccount.getRankColor(rank);
+    }
+
+    var modal = document.createElement('div');
+    modal.id = 'camp-profile-modal';
+    _OVERLAY_IDS.push('camp-profile-modal');
+    modal.style.cssText = [
+      'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
+      'z-index:20000', 'display:flex', 'align-items:center', 'justify-content:center',
+      'background:rgba(0,0,0,0.75)',
+    ].join(';');
+
+    var box = document.createElement('div');
+    box.style.cssText = [
+      'background:linear-gradient(135deg,rgba(8,8,20,0.98),rgba(5,5,15,0.99))',
+      'border:2px solid rgba(0,255,255,0.4)', 'border-radius:18px',
+      'padding:30px 40px', 'text-align:center', 'max-width:380px', 'width:90%',
+      'box-shadow:0 0 50px rgba(0,255,255,0.15)',
+    ].join(';');
+
+    // Avatar with profile border ring
+    var avatarWrap = document.createElement('div');
+    avatarWrap.style.cssText = [
+      'width:80px', 'height:80px', 'border-radius:50%', 'margin:0 auto 16px',
+      'background:radial-gradient(circle at 35% 30%, #0a3a4a 0%, #020a10 100%)',
+      'border:3px solid ' + rankColor,
+      'display:flex', 'align-items:center', 'justify-content:center',
+      'font-size:38px',
+      'box-shadow:0 0 20px ' + rankColor + '44',
+    ].join(';');
+    avatarWrap.textContent = '💧';
+    box.appendChild(avatarWrap);
+
+    // Name
+    var nameEl = document.createElement('div');
+    nameEl.style.cssText = 'color:#00ffff;font-family:Bangers,cursive;font-size:24px;letter-spacing:2px;margin-bottom:4px;';
+    nameEl.textContent = playerName.toUpperCase();
+    box.appendChild(nameEl);
+
+    // Level + Rank
+    var lvlEl = document.createElement('div');
+    lvlEl.style.cssText = 'color:' + rankColor + ';font-family:"Courier New",monospace;font-size:14px;margin-bottom:16px;';
+    lvlEl.textContent = 'LEVEL ' + accLvl + ' · ' + rank;
+    box.appendChild(lvlEl);
+
+    // XP bar
+    var xpNeeded = 100 + (accLvl - 1) * 50; // approximate
+    if (typeof getAccountLevelXPRequired === 'function') xpNeeded = getAccountLevelXPRequired(accLvl);
+    var currXP = (sd && sd.accountXP) || 0;
+    var xpPct = Math.min(100, (currXP / xpNeeded) * 100);
+    var xpBar = document.createElement('div');
+    xpBar.style.cssText = 'width:100%;height:8px;background:rgba(255,255,255,0.1);border-radius:4px;margin-bottom:20px;overflow:hidden;';
+    var xpFill = document.createElement('div');
+    xpFill.style.cssText = 'width:' + xpPct + '%;height:100%;background:linear-gradient(90deg,#00ffcc,#00ccff);border-radius:4px;transition:width 0.4s;';
+    xpBar.appendChild(xpFill);
+    box.appendChild(xpBar);
+    var xpLabel = document.createElement('div');
+    xpLabel.style.cssText = 'color:#888;font-size:11px;margin-top:-16px;margin-bottom:18px;';
+    xpLabel.textContent = currXP + ' / ' + xpNeeded + ' XP';
+    box.appendChild(xpLabel);
+
+    // Stats summary
+    var statsEl = document.createElement('div');
+    statsEl.style.cssText = 'color:#aaa;font-size:12px;margin-bottom:18px;line-height:1.8;text-align:left;padding:0 10px;';
+    var totalKills = (sd && sd.totalKills) || 0;
+    var totalRuns = (sd && sd.totalRuns) || 0;
+    var totalGold = (sd && sd.gold) || 0;
+    statsEl.innerHTML = '⚔️ Total Kills: <span style="color:#fff">' + totalKills + '</span><br>' +
+                        '🔄 Total Runs: <span style="color:#fff">' + totalRuns + '</span><br>' +
+                        '🪙 Gold: <span style="color:#FFD700">' + totalGold + '</span>';
+    box.appendChild(statsEl);
+
+    // Buttons row
+    var btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:10px;justify-content:center;flex-wrap:wrap;';
+
+    // Settings button
+    var settingsBtn = document.createElement('button');
+    settingsBtn.style.cssText = 'padding:8px 16px;font-size:13px;font-family:"Segoe UI",sans-serif;background:rgba(255,255,255,0.1);color:#ccc;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;';
+    settingsBtn.textContent = '⚙️ Settings';
+    settingsBtn.addEventListener('click', function() {
+      modal.remove();
+      _menuOpen = false;
+      if (window.SettingsUI && typeof window.SettingsUI.show === 'function') {
+        window.SettingsUI.show();
+      } else if (typeof window.showSettings === 'function') {
+        window.showSettings();
+      }
+    });
+    btnRow.appendChild(settingsBtn);
+
+    // 7-Day Welcome button
+    var welcomeBtn = document.createElement('button');
+    welcomeBtn.style.cssText = 'padding:8px 16px;font-size:13px;font-family:"Segoe UI",sans-serif;background:rgba(255,255,255,0.1);color:#ccc;border:1px solid rgba(255,255,255,0.2);border-radius:6px;cursor:pointer;';
+    welcomeBtn.textContent = '🎁 7-Day Rewards';
+    welcomeBtn.addEventListener('click', function() {
+      modal.remove();
+      _menuOpen = false;
+      if (window.WelcomeUI && typeof window.WelcomeUI.show === 'function') {
+        window.WelcomeUI.show();
+      }
+    });
+    btnRow.appendChild(welcomeBtn);
+
+    box.appendChild(btnRow);
+
+    // Close button
+    var closeBtn = document.createElement('button');
+    closeBtn.style.cssText = 'margin-top:18px;padding:10px 32px;font-size:16px;font-family:Bangers,cursive;background:rgba(0,255,255,0.15);color:#00ffff;border:1px solid rgba(0,255,255,0.3);border-radius:8px;cursor:pointer;letter-spacing:1px;';
+    closeBtn.textContent = 'CLOSE';
+    closeBtn.addEventListener('click', function() {
+      modal.remove();
+      _menuOpen = false;
+    });
+    box.appendChild(closeBtn);
+
+    modal.appendChild(box);
+    // Click outside to close
+    modal.addEventListener('click', function(e) {
+      if (e.target === modal) { modal.remove(); _menuOpen = false; }
+    });
+    document.body.appendChild(modal);
   }
 
   // ──────────────────────────────────────────────────────────
