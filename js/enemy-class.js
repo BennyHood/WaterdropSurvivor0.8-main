@@ -269,8 +269,16 @@
       return null;
     }
     function _releaseWound(slot) {
+      var parentEnemy = slot.parentEnemy;
       slot.active = false;
       slot.mesh.visible = false;
+      if (parentEnemy && Array.isArray(parentEnemy.bulletHoles)) {
+        for (var i = parentEnemy.bulletHoles.length - 1; i >= 0; i--) {
+          if (parentEnemy.bulletHoles[i] === slot.mesh) {
+            parentEnemy.bulletHoles.splice(i, 1);
+          }
+        }
+      }
       if (slot.mesh.parent) slot.mesh.parent.remove(slot.mesh);
       slot.parentEnemy = null;
     }

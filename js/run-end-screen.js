@@ -529,8 +529,16 @@ window.RunEndScreen = (function () {
     if (flash) {
       flash.style.display = 'block';
       // DOPAMINE HIT: Green "Profile Level Up" text with glow + reward preview
-      flash.innerHTML = '<div style="font-size:28px;color:#00ff66;text-shadow:0 0 20px #00ff66,0 0 40px #00cc44;letter-spacing:3px;font-family:Bangers,cursive;">⬆️ PROFILE LEVEL UP!</div>' +
-        '<div style="font-size:20px;color:#FFD700;margin-top:6px;">Level ' + newLevel + '</div>';
+      // Build via DOM elements + textContent to avoid innerHTML XSS risk
+      flash.textContent = '';
+      var titleDiv = document.createElement('div');
+      titleDiv.style.cssText = 'font-size:28px;color:#00ff66;text-shadow:0 0 20px #00ff66,0 0 40px #00cc44;letter-spacing:3px;font-family:Bangers,cursive;';
+      titleDiv.textContent = '⬆️ PROFILE LEVEL UP!';
+      flash.appendChild(titleDiv);
+      var lvlDiv = document.createElement('div');
+      lvlDiv.style.cssText = 'font-size:20px;color:#FFD700;margin-top:6px;';
+      lvlDiv.textContent = 'Level ' + newLevel;
+      flash.appendChild(lvlDiv);
       // Show what they earned
       var rewardCycle = (newLevel - 1) % 4;
       var rewardText = '';
@@ -538,7 +546,10 @@ window.RunEndScreen = (function () {
       else if (rewardCycle === 1) rewardText = '+1 Skill Point';
       else if (rewardCycle === 2) rewardText = '+1 Training Point';
       else rewardText = '+100 Gold';
-      flash.innerHTML += '<div style="font-size:14px;color:#aaffaa;margin-top:8px;font-family:sans-serif;">' + rewardText + '</div>';
+      var rewardDiv = document.createElement('div');
+      rewardDiv.style.cssText = 'font-size:14px;color:#aaffaa;margin-top:8px;font-family:sans-serif;';
+      rewardDiv.textContent = rewardText;
+      flash.appendChild(rewardDiv);
       if (typeof playSound === 'function') {
         try { playSound('levelup'); } catch (e) { /* ignore */ }
       }

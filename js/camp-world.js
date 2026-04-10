@@ -133,6 +133,10 @@
   let _campArrowEl = null;
   let _campArrowDistEl = null;
 
+  // Pre-allocated scratch Vector3 for per-frame camp UI projections (bubble + quest arrow)
+  // Avoids GC pressure from new THREE.Vector3() every frame
+  var _campUITmpVec = null; // lazily initialized when THREE is available
+
   // Smoke particle system and pulsating glow rings around campfire
   let _smokeSystem   = null;
   let _smokePositions = null;
@@ -5124,6 +5128,8 @@
     'slot-machine-overlay',
     // Reward earned overlay
     'camp-reward-overlay',
+    // Profile modal overlay
+    'camp-profile-modal',
   ];
   window._CAMP_OVERLAY_IDS = _OVERLAY_IDS;
 
@@ -5148,7 +5154,10 @@
     ].join(';');
     document.body.appendChild(_storylineBarEl);
   }
+  var _lastStorylineText = null;
   function _setCampStoryline(text) {
+    if (text === _lastStorylineText) return; // skip redundant DOM writes
+    _lastStorylineText = text;
     _ensureStorylineBar();
     if (!text) {
       _storylineBarEl.style.display = 'none';
@@ -5208,13 +5217,17 @@
     }
     // Position above the player character using screen projection
     if (_playerMesh && _campCamera) {
-      var pos = _playerMesh.position.clone();
-      pos.y += 1.8;
-      pos.project(_campCamera);
-      var x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-      var y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
-      _playerBubbleEl.style.left = x + 'px';
-      _playerBubbleEl.style.top = y + 'px';
+      var THREE = T();
+      if (!_campUITmpVec && THREE) _campUITmpVec = new THREE.Vector3();
+      if (_campUITmpVec) {
+        _campUITmpVec.copy(_playerMesh.position);
+        _campUITmpVec.y += 1.8;
+        _campUITmpVec.project(_campCamera);
+        var x = (_campUITmpVec.x * 0.5 + 0.5) * window.innerWidth;
+        var y = (-_campUITmpVec.y * 0.5 + 0.5) * window.innerHeight;
+        _playerBubbleEl.style.left = x + 'px';
+        _playerBubbleEl.style.top = y + 'px';
+      }
     }
   }
   window._showPlayerBubble = _showPlayerBubble;
@@ -5225,6 +5238,8 @@
   let _rewardOverlayEl = null;
   function _showRewardEarned(rewards, title, onOK) {
     if (_rewardOverlayEl && _rewardOverlayEl.parentNode) _rewardOverlayEl.parentNode.removeChild(_rewardOverlayEl);
+    // Pause camp input while reward overlay is shown
+    _openMenu();
     _rewardOverlayEl = document.createElement('div');
     _rewardOverlayEl.id = 'camp-reward-overlay';
     _rewardOverlayEl.style.cssText = [
@@ -5266,6 +5281,7 @@
     okBtn.addEventListener('click', function() {
       if (_rewardOverlayEl && _rewardOverlayEl.parentNode) _rewardOverlayEl.parentNode.removeChild(_rewardOverlayEl);
       _rewardOverlayEl = null;
+      _resumeInput();
       if (onOK) onOK();
     });
     box.appendChild(okBtn);
@@ -6193,12 +6209,11 @@
   function _showProfileModal() {
     // Close existing if open
     var existing = document.getElementById('camp-profile-modal');
-    if (existing) { existing.remove(); _menuOpen = false; return; }
+    if (existing) { existing.remove(); _resumeInput(); return; }
 
-    _menuOpen = true;
-    _menuOpenTs = Date.now();
+    _openMenu();
     var sd = (typeof saveData !== 'undefined') ? saveData : null;
-    var accLvl = (sd && sd.accountLevel) || (sd && sd.account && sd.account.level) || 1;
+    var accLvl = (sd && sd.accountLevel) || 1;
     var playerName = (sd && sd.playerName) || 'UNIT-001';
     // Get rank
     var rank = 'RECRUIT';
@@ -6215,7 +6230,6 @@
 
     var modal = document.createElement('div');
     modal.id = 'camp-profile-modal';
-    _OVERLAY_IDS.push('camp-profile-modal');
     modal.style.cssText = [
       'position:fixed', 'top:0', 'left:0', 'width:100%', 'height:100%',
       'z-index:20000', 'display:flex', 'align-items:center', 'justify-content:center',
@@ -6271,15 +6285,26 @@
     xpLabel.textContent = currXP + ' / ' + xpNeeded + ' XP';
     box.appendChild(xpLabel);
 
-    // Stats summary
+    // Stats summary — built via DOM elements to avoid innerHTML XSS risk
     var statsEl = document.createElement('div');
     statsEl.style.cssText = 'color:#aaa;font-size:12px;margin-bottom:18px;line-height:1.8;text-align:left;padding:0 10px;';
     var totalKills = (sd && sd.totalKills) || 0;
     var totalRuns = (sd && sd.totalRuns) || 0;
     var totalGold = (sd && sd.gold) || 0;
-    statsEl.innerHTML = '⚔️ Total Kills: <span style="color:#fff">' + totalKills + '</span><br>' +
-                        '🔄 Total Runs: <span style="color:#fff">' + totalRuns + '</span><br>' +
-                        '🪙 Gold: <span style="color:#FFD700">' + totalGold + '</span>';
+    var _statLines = [
+      { label: '⚔️ Total Kills: ', value: totalKills, color: '#fff' },
+      { label: '🔄 Total Runs: ', value: totalRuns, color: '#fff' },
+      { label: '🪙 Gold: ', value: totalGold, color: '#FFD700' }
+    ];
+    _statLines.forEach(function(s, idx) {
+      var lbl = document.createTextNode(s.label);
+      var val = document.createElement('span');
+      val.style.color = s.color;
+      val.textContent = s.value;
+      statsEl.appendChild(lbl);
+      statsEl.appendChild(val);
+      if (idx < _statLines.length - 1) statsEl.appendChild(document.createElement('br'));
+    });
     box.appendChild(statsEl);
 
     // Buttons row
@@ -6292,7 +6317,7 @@
     settingsBtn.textContent = '⚙️ Settings';
     settingsBtn.addEventListener('click', function() {
       modal.remove();
-      _menuOpen = false;
+      _resumeInput();
       if (window.SettingsUI && typeof window.SettingsUI.show === 'function') {
         window.SettingsUI.show();
       } else if (typeof window.showSettings === 'function') {
@@ -6307,7 +6332,7 @@
     welcomeBtn.textContent = '🎁 7-Day Rewards';
     welcomeBtn.addEventListener('click', function() {
       modal.remove();
-      _menuOpen = false;
+      _resumeInput();
       if (window.WelcomeUI && typeof window.WelcomeUI.show === 'function') {
         window.WelcomeUI.show();
       }
@@ -6322,14 +6347,14 @@
     closeBtn.textContent = 'CLOSE';
     closeBtn.addEventListener('click', function() {
       modal.remove();
-      _menuOpen = false;
+      _resumeInput();
     });
     box.appendChild(closeBtn);
 
     modal.appendChild(box);
     // Click outside to close
     modal.addEventListener('click', function(e) {
-      if (e.target === modal) { modal.remove(); _menuOpen = false; }
+      if (e.target === modal) { modal.remove(); _resumeInput(); }
     });
     document.body.appendChild(modal);
   }
@@ -7328,17 +7353,21 @@
     if (dist < 3.5) {
       // Project goal position to screen to show ▼ marker
       if (_campCamera) {
-        var goalPos = new THREE.Vector3(targetDef.x, 0.5, targetDef.z);
-        goalPos.project(_campCamera);
-        var gx = (goalPos.x * 0.5 + 0.5) * window.innerWidth;
-        var gy = (-goalPos.y * 0.5 + 0.5) * window.innerHeight;
-        _campArrowEl.style.display = 'block';
-        _campArrowEl.style.left = (gx - 24) + 'px';
-        _campArrowEl.style.top = (gy - 40) + 'px';
-        _campArrowEl.style.transform = 'rotate(180deg)';
-        _campArrowEl.style.color = '#00ff66';
-        _campArrowEl.style.textShadow = '0 0 16px #00ff66';
-        if (_campArrowDistEl) _campArrowDistEl.textContent = Math.round(dist * 10) / 10 + 'm';
+        var THREE = T();
+        if (!_campUITmpVec && THREE) _campUITmpVec = new THREE.Vector3();
+        if (_campUITmpVec) {
+          _campUITmpVec.set(targetDef.x, 0.5, targetDef.z);
+          _campUITmpVec.project(_campCamera);
+          var gx = (_campUITmpVec.x * 0.5 + 0.5) * window.innerWidth;
+          var gy = (-_campUITmpVec.y * 0.5 + 0.5) * window.innerHeight;
+          _campArrowEl.style.display = 'block';
+          _campArrowEl.style.left = (gx - 24) + 'px';
+          _campArrowEl.style.top = (gy - 40) + 'px';
+          _campArrowEl.style.transform = 'rotate(180deg)';
+          _campArrowEl.style.color = '#00ff66';
+          _campArrowEl.style.textShadow = '0 0 16px #00ff66';
+          if (_campArrowDistEl) _campArrowDistEl.textContent = Math.round(dist * 10) / 10 + 'm';
+        }
       } else {
         _campArrowEl.style.display = 'none';
       }
