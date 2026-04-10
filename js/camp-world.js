@@ -73,6 +73,15 @@
   let _campScene   = null;
   let _campCamera  = null;
   let _renderer    = null;       // shared renderer from main.js
+
+  // ── Profile avatar (UI layer) ─────────────────────────────
+  let _uiScene          = null;
+  let _uiCamera         = null;
+  let _profileAvatar    = null;
+  let _avatarTexture    = null;
+  let _avatarFrame      = 0;
+  let _avatarFrameTimer = 0;
+  const _AVATAR_FPS     = 14; // ~14 fps for natural breathing cadence
   let _callbacks   = {};         // { buildingId → fn() } set by main.js
   let _isBuilding  = false;      // guard against re-entrant _buildScene() calls
   let _saveData    = null;
@@ -371,10 +380,65 @@
     const aspect = window.innerWidth / window.innerHeight;
     _campCamera = new THREE.PerspectiveCamera(42, aspect, 0.1, 200);
     _updateCamera(0);
+
+    // ── UI overlay: OrthographicCamera + profile avatar sprite ──
+    _buildProfileAvatarUI(THREE);
     } catch (err) {
       console.error('[CampWorld] _buildScene() error:', err);
       throw err; // re-throw so warmUp/enter can reset _campScene for a clean retry
     }
+  }
+
+  // ── Profile avatar UI overlay (OrthographicCamera) ───────
+  function _buildProfileAvatarUI(THREE) {
+    const W = window.innerWidth;
+    const H = window.innerHeight;
+
+    // Separate scene so it draws cleanly on top of the 3-D camp
+    _uiScene  = new THREE.Scene();
+    _uiCamera = new THREE.OrthographicCamera(
+      -W / 2, W / 2,   // left, right
+       H / 2, -H / 2,  // top, bottom
+      -10, 10           // near, far
+    );
+
+    // Dispose any previous texture to avoid GPU leak on scene rebuild
+    if (_avatarTexture) { _avatarTexture.dispose(); _avatarTexture = null; }
+
+    _avatarTexture = new THREE.TextureLoader().load('assets/ui/idle-breathing-ui.png');
+    _avatarTexture.magFilter = THREE.NearestFilter; // crisp pixel-art upscale
+    _avatarTexture.minFilter = THREE.NearestFilter;
+    _avatarTexture.repeat.set(1 / 8, 1 / 4);       // 8 cols × 4 rows
+    _avatarTexture.offset.set(0, 1 - 1 / 4);       // frame 0 = top-left
+
+    const avatarMat = new THREE.SpriteMaterial({
+      map:         _avatarTexture,
+      transparent: true,
+      depthTest:   false,
+      depthWrite:  false,
+    });
+
+    _profileAvatar = new THREE.Sprite(avatarMat);
+    _profileAvatar.scale.set(128, 128, 1);
+    // top-left corner: 85 px from left edge and 85 px from top edge
+    _profileAvatar.position.set(-W / 2 + 85, H / 2 - 85, 0);
+    _uiScene.add(_profileAvatar);
+
+    // Reset animation state
+    _avatarFrame      = 0;
+    _avatarFrameTimer = 0;
+  }
+
+  // Advance the avatar sprite sheet by one frame (time-based, not per-frame)
+  function _updateProfileAvatar(dt) {
+    if (!_avatarTexture) return;
+    _avatarFrameTimer += dt;
+    if (_avatarFrameTimer < 1 / _AVATAR_FPS) return;
+    _avatarFrameTimer -= 1 / _AVATAR_FPS;
+    _avatarFrame = (_avatarFrame + 1) % 32;
+    const col = _avatarFrame % 8;
+    const row = Math.floor(_avatarFrame / 8);
+    _avatarTexture.offset.set(col / 8, 1 - (row + 1) / 4);
   }
 
   // ── Ground plane with dirt paths ────────────────────────
@@ -7439,6 +7503,7 @@
     }
     _updateCamera(dt);
     _updateSigns();
+    _updateProfileAvatar(dt);
   }
 
   /**
@@ -7448,6 +7513,12 @@
   function render() {
     if (!_isActive || !_campScene || !_campCamera || !_renderer) return;
     _renderer.render(_campScene, _campCamera);
+    // Render UI overlay (profile avatar) on top without clearing
+    if (_uiScene && _uiCamera) {
+      _renderer.autoClear = false;
+      _renderer.render(_uiScene, _uiCamera);
+      _renderer.autoClear = true;
+    }
   }
 
   /**
@@ -7476,6 +7547,22 @@
     if (_campCamera) {
       _campCamera.aspect = window.innerWidth / window.innerHeight;
       _campCamera.updateProjectionMatrix();
+    }
+    // Update orthographic UI camera to match new viewport
+    if (_uiCamera) {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      _uiCamera.left   = -W / 2;
+      _uiCamera.right  =  W / 2;
+      _uiCamera.top    =  H / 2;
+      _uiCamera.bottom = -H / 2;
+      _uiCamera.updateProjectionMatrix();
+    }
+    // Reposition avatar to stay in top-left corner after resize
+    if (_profileAvatar) {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      _profileAvatar.position.set(-W / 2 + 85, H / 2 - 85, 0);
     }
   }
 
