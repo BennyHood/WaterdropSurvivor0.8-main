@@ -39,6 +39,7 @@ const GoreSimulator = {
     if (window.BloodSimulatorV21) {
       window.BloodSimulatorV21.rawBurst(pos.x, pos.y + 1.8, pos.z, 220, {spreadXZ: 22, spreadY: 32, viscosity: 0.38});
     } else if (window.BloodV2) {
+      // BloodV2.rawBurst is radial (no separate Y spread); spdMax=32 matches spreadY (the larger axis)
       // BloodV2.rawBurst is radial (no separate Y spread); use the larger of spreadXZ/spreadY as spdMax
       window.BloodV2.rawBurst(pos.x, pos.y + 1.8, pos.z, 220, {spdMin: 8, spdMax: 32, visc: 0.38});
     }

@@ -375,9 +375,7 @@
       80%  { transform: translateY(2px) scale(0.99); }
       100% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
     }
-    .upgrade-card {
-      animation: card-enter 0.55s cubic-bezier(0.22,1,0.36,1) both;
-    }
+    /* NOTE: default card-enter is overridden per card by level-up-system.js JS animation assignment */
     .upgrade-card:nth-child(1) { animation-delay: 0.00s; }
     .upgrade-card:nth-child(2) { animation-delay: 0.07s; }
     .upgrade-card:nth-child(3) { animation-delay: 0.14s; }
@@ -391,6 +389,191 @@
       0%   { transform: translateY(-40px) scale(0.9); opacity:0; }
       60%  { transform: translateY(8px) scale(1.02); }
       100% { transform: translateY(0) scale(1); opacity:1; }
+    }
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       CARD ENTRY ANIMATIONS — 6 unique entry directions (120fps GPU-composited)
+       All transforms are composited on the GPU — no layout triggers.
+       ══════════════════════════════════════════════════════════════════════════ */
+    @keyframes cardEnterFromTop {
+      0%   { opacity:0; transform: translateY(-120px) scale(0.7) rotate(-4deg); }
+      65%  { opacity:1; transform: translateY(10px)   scale(1.04) rotate(1deg); }
+      82%  { transform: translateY(-4px) scale(0.99) rotate(0deg); }
+      100% { opacity:1; transform: translateY(0) scale(1) rotate(0deg); }
+    }
+    @keyframes cardEnterFromLeft {
+      0%   { opacity:0; transform: translateX(-160px) scale(0.75) rotate(6deg); }
+      65%  { opacity:1; transform: translateX(12px)   scale(1.05) rotate(-1.5deg); }
+      82%  { transform: translateX(-5px) scale(0.99) rotate(0deg); }
+      100% { opacity:1; transform: translateX(0) scale(1) rotate(0deg); }
+    }
+    @keyframes cardEnterFromRight {
+      0%   { opacity:0; transform: translateX(160px) scale(0.75) rotate(-6deg); }
+      65%  { opacity:1; transform: translateX(-12px) scale(1.05) rotate(1.5deg); }
+      82%  { transform: translateX(5px) scale(0.99) rotate(0deg); }
+      100% { opacity:1; transform: translateX(0) scale(1) rotate(0deg); }
+    }
+    @keyframes cardEnterFromBottom {
+      0%   { opacity:0; transform: translateY(140px) scale(0.7) rotate(4deg); }
+      65%  { opacity:1; transform: translateY(-10px) scale(1.04) rotate(-1deg); }
+      82%  { transform: translateY(4px) scale(0.99) rotate(0deg); }
+      100% { opacity:1; transform: translateY(0) scale(1) rotate(0deg); }
+    }
+    @keyframes cardEnterZoomPop {
+      0%   { opacity:0; transform: scale(0.2); filter: blur(6px); }
+      55%  { opacity:1; transform: scale(1.12); filter: blur(0); }
+      75%  { transform: scale(0.97); }
+      90%  { transform: scale(1.03); }
+      100% { opacity:1; transform: scale(1); }
+    }
+    @keyframes cardEnterSpiral {
+      0%   { opacity:0; transform: translate(-80px, 80px) scale(0.5) rotate(-40deg); }
+      60%  { opacity:1; transform: translate(8px, -8px)   scale(1.06) rotate(3deg); }
+      80%  { transform: translate(-3px, 3px) scale(0.99) rotate(0deg); }
+      100% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
+    }
+
+    /* ── Card thud flash (after entry lands) ── */
+    @keyframes card-thud {
+      0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+      30%  { box-shadow: 0 0 28px 8px rgba(255,255,255,0.55); }
+      100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+    }
+    .card-thud-flash { animation: card-thud 0.38s ease-out both !important; }
+
+    /* ── Brief screen shake ── */
+    @keyframes screen-shake-brief-kf {
+      0%,100% { transform: translate(0,0); }
+      20%  { transform: translate(-3px, 2px); }
+      40%  { transform: translate(3px, -2px); }
+      60%  { transform: translate(-2px, 1px); }
+      80%  { transform: translate(2px, -1px); }
+    }
+    body.screen-shake-brief { animation: screen-shake-brief-kf 0.2s ease-out both; }
+
+    /* ── Melting drip drops (appended to each card) ── */
+    .card-drip {
+      position: absolute;
+      bottom: -2px;
+      height: 0;
+      border-radius: 0 0 50% 50%;
+      pointer-events: none;
+      background: var(--drip-color, currentColor);
+      opacity: 0.82;
+      animation: card-drip-fall var(--drip-dur, 2s) var(--drip-delay, 0s) ease-in infinite;
+      will-change: height, opacity;
+    }
+    @keyframes card-drip-fall {
+      0%   { height: 0;    opacity: 0; }
+      10%  { height: 3px;  opacity: 0.9; }
+      55%  { height: 22px; opacity: 0.85; }
+      80%  { height: 30px; opacity: 0.5; }
+      100% { height: 38px; opacity: 0; }
+    }
+
+    /* ── Side melt streaks (epic/legendary/mythic) ── */
+    .card-streak {
+      position: absolute;
+      width: 3px;
+      border-radius: 2px;
+      pointer-events: none;
+      background: linear-gradient(180deg, transparent, currentColor, transparent);
+      opacity: 0;
+      animation: card-streak-slide var(--streak-dur, 3s) var(--streak-delay, 0s) ease-in-out infinite;
+      will-change: transform, opacity;
+    }
+    @keyframes card-streak-slide {
+      0%   { opacity:0; transform: translateY(-100%); }
+      15%  { opacity:0.8; }
+      85%  { opacity:0.6; }
+      100% { opacity:0; transform: translateY(200%); }
+    }
+
+    /* ── Hold-to-pick ring (melt-shadow) ── */
+    .hold-ring {
+      position: absolute;
+      inset: -4px;
+      border-radius: inherit;
+      border: 3px solid transparent;
+      pointer-events: none;
+      z-index: 5;
+    }
+    .upgrade-card.holding .hold-ring {
+      border-color: rgba(255,215,0,0.7);
+      box-shadow: 0 0 16px 4px rgba(255,215,0,0.35);
+      animation: hold-ring-pulse 0.3s ease-in-out infinite alternate;
+    }
+    @keyframes hold-ring-pulse {
+      from { box-shadow: 0 0 12px 3px rgba(255,215,0,0.3); }
+      to   { box-shadow: 0 0 22px 7px rgba(255,215,0,0.55); }
+    }
+
+    /* ── Hold-progress fill indicator ── */
+    .hold-progress {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 4px;
+      width: 0%;
+      background: linear-gradient(90deg, #FFD700, #FF8C00);
+      border-radius: 0 0 14px 14px;
+      pointer-events: none;
+      z-index: 6;
+      transition: width 0.05s linear;
+      box-shadow: 0 0 8px rgba(255,200,0,0.5);
+    }
+    .upgrade-card.holding .hold-progress {
+      transition: width 1.2s linear;
+      width: 100%;
+    }
+
+    /* ── Animated spinning border glow (conic gradient sweep) ── */
+    .border-flow {
+      position: absolute;
+      inset: -3px;
+      border-radius: inherit;
+      z-index: -1;
+      pointer-events: none;
+      background: conic-gradient(from 0deg, transparent 60%, rgba(255,255,255,0.25) 75%, transparent 90%);
+      animation: border-flow-spin 2.5s linear infinite;
+      will-change: transform;
+    }
+    @keyframes border-flow-spin {
+      0%   { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* ── Green selection edge (shown when card is chosen) ── */
+    .card-green-edge {
+      position: absolute;
+      inset: -2px;
+      border-radius: inherit;
+      border: 2px solid transparent;
+      pointer-events: none;
+      z-index: 7;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .upgrade-card.selected .card-green-edge {
+      border-color: #44ff88;
+      box-shadow: 0 0 14px 4px rgba(68,255,136,0.45);
+    }
+
+    /* ── Mythic floating particles ── */
+    .mythic-particle {
+      position: absolute;
+      top: 20%;
+      left: var(--mp-x, 50%);
+      width: 5px; height: 5px;
+      border-radius: 50%;
+      background: #ff2222;
+      pointer-events: none;
+      z-index: 8;
+      animation: mythic-float calc(1.4s + var(--mp-delay, 0s)) var(--mp-delay, 0s) ease-in-out infinite alternate;
+      box-shadow: 0 0 8px 3px rgba(255,0,0,0.6);
+    }
+    @keyframes mythic-float {
+      0%   { transform: translateY(0) scale(1); opacity:0.7; }
+      50%  { transform: translateY(-14px) scale(1.3); opacity:1; }
+      100% { transform: translateY(-6px) scale(0.85); opacity:0.5; }
     }
 
     /* ── Revolver cylinder UI ──────────────────────────────────────────────── */
@@ -968,8 +1151,8 @@
   <!-- 11. Blood & physics: instanced blood drops, ground stains, wounds -->
   <script src="js/blood-system-v2.js"></script>
 
-  <!-- 11-v21. Blood Simulator V2.1 — disabled (functionality merged into blood-system-v2.js) -->
-  <!-- <script src="js/blood-simulator-v21.js"></script> -->
+  <!-- 11-v21. Blood Simulator V2.1 — terrain-aware, 120fps, fantasy-realism gore -->
+  <script src="js/blood-simulator-v21.js"></script>
 
   <!-- 11a. Gore simulator: advanced gore chunks, splatter, mesh deformation -->
   <script src="js/gore-simulator.js"></script>
@@ -1039,6 +1222,9 @@
 
   <!-- 22. Rage combat system (rage meter, special attacks, rage mode) -->
   <script src="js/rage-combat.js"></script>
+
+  <!-- 22.3. Muzzle Flash System — per-weapon particle/light effects -->
+  <script src="js/muzzle-flash-system.js"></script>
 
   <!-- 22.5 UI Calibration (HUD drag/resize) -->
   <script src="js/ui-calibration.js"></script>

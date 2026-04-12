@@ -1777,6 +1777,10 @@
               opacity: 0.8
             });
             const orb = new THREE.Mesh(geo, mat);
+            // Per-orb glow light stored in userData to avoid clashing with Three.js internals
+            const orbLight = new THREE.PointLight(0xFF6600, 1.2, 3.5);
+            orb.add(orbLight);
+            orb.userData.fireOrbLight = orbLight;
             const targetScene = _getScene();
             if (targetScene) {
               targetScene.add(orb);
@@ -1802,12 +1806,17 @@
           for (let i = 0; i < this.fireRingOrbs.length; i++) {
             const angle = this.fireRingAngle + (i * Math.PI * 2 / currentOrbCount);
             const orb = this.fireRingOrbs[i];
+            orb.visible = true;
             orb.position.x = this.mesh.position.x + Math.cos(angle) * radius;
             orb.position.z = this.mesh.position.z + Math.sin(angle) * radius;
             orb.position.y = this.mesh.position.y + Math.sin(gameTime * 5 + i) * 0.3; // Bob up and down
             
             // Glow effect
             orb.material.opacity = 0.7 + Math.sin(gameTime * 8 + i) * 0.2;
+            // Pulse PointLight intensity for breathing fire glow
+            if (orb.userData.fireOrbLight) {
+              orb.userData.fireOrbLight.intensity = 1.0 + 0.5 * Math.sin(gameTime * 6 + i);
+            }
             
             // Fire particles around each orb (throttled: every 3 frames)
             if (Math.floor(gameTime * 60) % 3 === i % 3) {

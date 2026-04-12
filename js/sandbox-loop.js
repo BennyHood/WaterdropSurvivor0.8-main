@@ -482,7 +482,7 @@
   let _doubleBarrelTimer  = 0;
   let _iceSpearTimer      = 0;
   let _fireRingTimer      = 0;
-  let _fireRingAngle      = 0;   // running rotation angle for fire-ring orbs (radians)
+  let _fireRingAngle      = 0;   // running rotation angle used for damage position calculation
   let _lightningTimer     = 0;
   let _meteorTimer        = 0;
   let _teslaSaberTimer    = 0;
@@ -4853,10 +4853,13 @@
     } else { _iceSpearTimer = 0; }
 
     // ── FIRE RING: orbiting fire orbs that scorch enemies they pass over ──────
+    // Visuals (orb meshes + PointLights) are managed by player-class.js (this.fireRingOrbs).
+    // This block handles only the AoE damage tick and muzzle flash trigger.
     if (weapons.fireRing && weapons.fireRing.active) {
       const orbs = weapons.fireRing.orbs || 3;
       const fRange = weapons.fireRing.range || 4;
       _fireRingAngle += (weapons.fireRing.rotationSpeed || 2) * dt;
+
       _fireRingTimer -= dt * 1000;
       if (_fireRingTimer <= 0) {
         _fireRingTimer = weapons.fireRing.cooldown || 800;
@@ -4869,6 +4872,10 @@
           const orbX = px + Math.cos(angle) * fRange;
           const orbZ = pz + Math.sin(angle) * fRange;
           _weaponAoeDamage(orbX, orbZ, orbHitRadSq, dmg, '#FF4400');
+        }
+        if (window.spawnWeaponMuzzleFlash) {
+          _tmpV3.set(px, 0.6, pz);
+          window.spawnWeaponMuzzleFlash('fireRing', _tmpV3, null, scene);
         }
       }
     } else { _fireRingTimer = 0; }
