@@ -6288,8 +6288,26 @@
     levelEl.style.cssText = 'color:#FFD700;font-family:"Courier New",monospace;font-size:10px;';
     levelEl.textContent = 'LVL 1 · RECRUIT';
 
+    // XP progress bar with exact % text
+    const xpWrap = document.createElement('div');
+    xpWrap.id = 'camp-profile-xp-wrap';
+    xpWrap.style.cssText = 'display:flex;align-items:center;gap:4px;margin-top:2px;';
+    const xpBar = document.createElement('div');
+    xpBar.style.cssText = 'flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden;';
+    const xpFill = document.createElement('div');
+    xpFill.id = 'camp-profile-xp-fill';
+    xpFill.style.cssText = 'width:0%;height:100%;background:linear-gradient(90deg,#00ffcc,#00ccff);border-radius:2px;transition:width 0.4s;';
+    xpBar.appendChild(xpFill);
+    const xpPctEl = document.createElement('span');
+    xpPctEl.id = 'camp-profile-xp-pct';
+    xpPctEl.style.cssText = 'color:rgba(0,255,204,0.7);font-family:"Courier New",monospace;font-size:9px;white-space:nowrap;flex-shrink:0;';
+    xpPctEl.textContent = '0%';
+    xpWrap.appendChild(xpBar);
+    xpWrap.appendChild(xpPctEl);
+
     info.appendChild(nameEl);
     info.appendChild(levelEl);
+    info.appendChild(xpWrap);
 
     // "!" new-stuff badge
     const badge = document.createElement('div');
@@ -6364,6 +6382,19 @@
         else if (kills >= 30) rank = 'SOLDIER';
       }
       levelEl.textContent = 'LVL ' + accLvl + ' · ' + rank;
+    }
+    // XP progress bar + % text
+    const xpFillEl = document.getElementById('camp-profile-xp-fill');
+    const xpPctEl  = document.getElementById('camp-profile-xp-pct');
+    if (xpFillEl && xpPctEl) {
+      const accLvlForXP = (sd.accountLevel || (sd.account && sd.account.level) || 1);
+      const xpNeeded = (typeof getAccountLevelXPRequired === 'function')
+        ? getAccountLevelXPRequired(accLvlForXP)
+        : (100 + (accLvlForXP - 1) * 50);
+      const currXP = sd.accountXP || 0;
+      const pct = Math.min(100, xpNeeded > 0 ? Math.round((currXP / xpNeeded) * 100) : 0);
+      xpFillEl.style.width = pct + '%';
+      xpPctEl.textContent  = pct + '%';
     }
     if (badge) {
       const tq = sd.tutorialQuests;

@@ -5555,6 +5555,28 @@
     grip.rotation.z = -0.15;
     gunGroup.add(grip);
 
+    // Engraved ".W.T.S." text on grip side — baked onto a canvas texture
+    try {
+      const engCanvas = document.createElement('canvas');
+      engCanvas.width = 64; engCanvas.height = 32;
+      const engCtx = engCanvas.getContext('2d');
+      engCtx.fillStyle = '#3a200e';
+      engCtx.fillRect(0, 0, 64, 32);
+      engCtx.fillStyle = '#c8a06a';
+      engCtx.font = 'bold 12px monospace';
+      engCtx.textAlign = 'center';
+      engCtx.textBaseline = 'middle';
+      engCtx.fillText('.W.T.S.', 32, 16);
+      const engTex = new THREE.CanvasTexture(engCanvas);
+      const engGeo = new THREE.PlaneGeometry(0.055, 0.025);
+      const engMat = new THREE.MeshStandardMaterial({ map: engTex, roughness: 0.8, metalness: 0.0, transparent: true });
+      const engPlane = new THREE.Mesh(engGeo, engMat);
+      // Place on the front face of the grip, slightly above center
+      engPlane.position.set(-0.05, -0.10, 0.026);
+      engPlane.rotation.z = -0.15;
+      gunGroup.add(engPlane);
+    } catch (_engErr) { /* non-critical visual — skip if canvas unavailable */ }
+
     // Whole revolver a bit smaller
     gunGroup.scale.setScalar(0.85);
     gunGroup.position.set(_gunOffset.x, _gunOffset.y, _gunOffset.z);
