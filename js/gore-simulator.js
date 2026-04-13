@@ -22,15 +22,15 @@ const GoreSimulator = {
   },
   sliceEnemy(enemy, hitPoint, hitNormal) {
     if (this.debug) console.log('🩸 BRUTAL SLICE');
-    const body = enemy.mesh;
-    body.scale.set(1, 0.5, 1);
-    const bloodPos = hitPoint.clone();
-    for (let i = 0; i < 35; i++) {
-      if (window.BloodSimulatorV21) {
-        window.BloodSimulatorV21.rawBurst(bloodPos.x, bloodPos.y + Math.random() * 1.2, bloodPos.z, 12, {viscosity: 0.45});
-      } else if (window.BloodV2) {
-        window.BloodV2.rawBurst(bloodPos.x, bloodPos.y + Math.random() * 1.2, bloodPos.z, 12, {visc: 0.45});
-      }
+    // NOTE: do NOT squash enemy.mesh.scale here — it permanently distorts the mesh and
+    // causes visible artifacts on every subsequent sword hit.
+    const bx = hitPoint.x, by = hitPoint.y, bz = hitPoint.z;
+    if (window.BloodSimulatorV21) {
+      window.BloodSimulatorV21.rawBurst(bx, by + 0.4, bz, 28, {viscosity: 0.45});
+      window.BloodSimulatorV21.rawBurst(bx, by + 0.8, bz, 12, {viscosity: 0.35});
+    } else if (window.BloodV2) {
+      window.BloodV2.rawBurst(bx, by + 0.4, bz, 28, {spdMin: 2, spdMax: 8, visc: 0.45});
+      window.BloodV2.rawBurst(bx, by + 0.8, bz, 12, {spdMin: 1, spdMax: 5, visc: 0.35});
     }
   },
   dismemberEnemy(enemy, vx, vz) {

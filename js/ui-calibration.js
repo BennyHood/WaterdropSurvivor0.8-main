@@ -125,6 +125,78 @@
       defaultPos: { right: '8px', top: '8px', left: null, bottom: null },
       defaultScale: 1,
     },
+    {
+      selector: '#hud-top-right-row',
+      label: '💀 Kill Count + XP Row',
+      defaultPos: { right: '10px', top: '10px', left: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#hud-skull-icon',
+      label: '💀 Skull Icon',
+      defaultPos: { right: null, top: null, left: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#hud-kill-count',
+      label: '🗡️ Kill Count Text',
+      defaultPos: { right: null, top: null, left: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#hud-xp-mini-bar-wrap',
+      label: '🔵 XP Mini Bar',
+      defaultPos: { right: null, top: null, left: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#joystick-zone',
+      label: '🕹️ Joystick Zone',
+      defaultPos: { left: '0px', bottom: '0px', right: null, top: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#companion-skills-panel',
+      label: '👽 Companion Skills',
+      defaultPos: { left: '10px', bottom: '140px', right: null, top: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#special-attacks-panel',
+      label: '⚡ Special Attacks Panel',
+      defaultPos: { right: '10px', bottom: '80px', left: null, top: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#endless-wave-display',
+      label: '🌊 Wave Display',
+      defaultPos: { left: null, top: '50%', right: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#wave-complete-banner',
+      label: '🏆 Wave Complete Banner',
+      defaultPos: { left: null, top: '30%', right: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#challenge-complete-board',
+      label: '🏅 Challenge Complete Board',
+      defaultPos: { left: null, top: null, right: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '#tutorial-text-wrap',
+      label: '📖 Tutorial / Countdown Text',
+      defaultPos: { left: null, top: null, right: null, bottom: null },
+      defaultScale: 1,
+    },
+    {
+      selector: '.hud-top .bar-container',
+      label: '💚 Individual Stat Bars',
+      defaultPos: { left: null, top: null, right: null, bottom: null },
+      defaultScale: 1,
+    },
   ];
 
   let _active = false;

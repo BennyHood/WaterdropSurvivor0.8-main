@@ -4246,20 +4246,18 @@
       } catch(e) { console.warn('[EggHunt] egg spawn failed:', e); }
     }
 
-    // ── Small "LEVEL UP!" text that rises from character's head ──
-    // Appears first (small), grows upward, then the big fire animation plays.
+    // ── Yellow "LEVEL UP!" text that rises from character's head ──
+    // Game stays live during this so enemies react to the explosion shockwave.
     _spawnSmallLevelUpText();
 
-    // ── Fiery "LEVEL UP" text animation (Grind Survivors style) ──
-    // Spawns a massive burning text above the player before showing the upgrade modal.
-    setTimeout(_spawnFireLevelUpText, 0); // fire immediately with small text
-
-    // Delay before upgrade modal appears so player can enjoy the fiery text animation
-    window.isPaused = true;
+    // ── Pause + show upgrade modal after explosion plays fully (~2 s) ──
+    // Game does NOT pause immediately; enemies keep moving so the shockwave
+    // knockback, particles and energy rings are fully visible before freeze.
     setTimeout(function () {
+      window.isPaused = true;
       if (typeof showUpgradeModal === 'function') {
         showUpgradeModal(false, null);
-        // Failsafe: if showUpgradeModal returned without showing the modal
+        // Failsafe: unpause if modal never appeared
         setTimeout(function () {
           const modal = document.getElementById('levelup-modal');
           if (window.isPaused && (!modal || modal.style.display !== 'flex')) {
@@ -4269,7 +4267,7 @@
       } else {
         window.isPaused = false;
       }
-    }, 1800); // 1.8s delay to let the fiery text play
+    }, 2000); // 2 s — lets shockwave + knockback + fountain fully play
 
     // Stats + Account XP + Codex + Achievements on level up
     if (saveData && saveData.stats) saveData.stats.highestLevel = Math.max(saveData.stats.highestLevel || 0, playerStats.lvl);

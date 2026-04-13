@@ -743,7 +743,7 @@ new THREE.DodecahedronGeometry(1.0, 0),
 new THREE.TetrahedronGeometry(1.0, 0),
 new THREE.OctahedronGeometry(1.0, 0),
 ];
-var mat = new THREE.MeshLambertMaterial({ transparent: true });
+var mat = new THREE.MeshLambertMaterial({ transparent: true, depthWrite: false });
 
 _chunks = [];
 for (var i = 0; i < CFG.CHUNK_COUNT; i++) {
@@ -1096,7 +1096,6 @@ dd.mesh.material.opacity = (dd.life / 4.0) * 0.80;
   _streams = [];
   if (_dropIM) _dropIM.instanceMatrix.needsUpdate = true;
   if (_mistIM) _mistIM.instanceMatrix.needsUpdate = true;
-  console.log('[BloodV2] Reset complete.');
   }
 
 // ══════════════════════════════════════════

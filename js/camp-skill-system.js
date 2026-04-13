@@ -3208,12 +3208,16 @@
         //   2. A.I.D.A shows directive dialog
         //   3. ONLY after dialog is closed → building pops up (scale 0→1 bounce)
         if (window.CampWorld && window.CampWorld.isActive) {
-          window.CampWorld.refreshBuildings(saveData);
-          // Walk A.I.D.A to the building; pop animation fires only after dialog closes
+          // Walk A.I.D.A to the building; pop animation fires only after dialog closes.
+          // refreshBuildings is intentionally called INSIDE the callback (not before) so the
+          // building stays in construction-mode during the dialog — preventing the building
+          // from momentarily appearing at full scale and then snapping back to 0.01 when the
+          // unlock animation resets it.
           var _bennyDialogText = '> ' + buildingName + ' node constructed. New operational parameters available.';
           if (window.CampWorld.bennyWalkToBuildThenDialog) {
             window.CampWorld.bennyWalkToBuildThenDialog(buildingId, _bennyDialogText, function () {
-              // Dialog closed — NOW animate the building popping up
+              // Dialog closed — refresh materials THEN animate the building popping up
+              window.CampWorld.refreshBuildings(saveData);
               window.CampWorld.playBuildingUnlockAnimation(buildingId);
               if (window.DopamineSystem && window.DopamineSystem.RewardJuice) {
                 window.DopamineSystem.RewardJuice.spawnConfetti();
@@ -3221,6 +3225,7 @@
             });
           } else {
             // Fallback: original behaviour
+            window.CampWorld.refreshBuildings(saveData);
             window.CampWorld.bennyWalkToBuild(buildingId, _bennyDialogText);
             setTimeout(function () {
               window.CampWorld.playBuildingUnlockAnimation(buildingId);

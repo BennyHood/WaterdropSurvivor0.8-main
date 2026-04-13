@@ -3319,10 +3319,9 @@
       50% { box-shadow: 0 4px 8px rgba(0,0,0,0.5), 0 0 25px rgba(155,89,182,0.6); }
     }
 
-    /* Level-up card entrance animations — cards fly in from screen corners */
     /* ─── Card 3D flip structure ─── */
     .upgrade-card {
-      perspective: 900px;
+      perspective: 1100px;
     }
     .card-inner {
       position: relative;
@@ -3339,46 +3338,96 @@
       -webkit-backface-visibility: hidden;
     }
     .card-front {
-      /* Front face — default position, shown when flipped */
+      /* Front face — revealed after flip */
       transform: rotateY(-180deg);
       will-change: transform;
     }
+
+    /* ─── Card back face: black/gold/silver Aida-style ─── */
     .card-back-face {
-      /* Back face — shown before flip; decorative back design */
-      background: radial-gradient(ellipse at 30% 25%, #1a0b2e 0%, #0d0620 60%, #050010 100%);
+      background: radial-gradient(ellipse at 50% 30%, #181100 0%, #0c0900 45%, #000000 100%);
       border-radius: 12px;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       overflow: hidden;
+      position: relative;
     }
+    /* Gold cross-hatch pattern — same as Aida cinematic screen */
     .card-back-face::before {
       content: '';
       position: absolute;
       inset: 0;
-      background:
-        repeating-linear-gradient(45deg, rgba(100,50,200,0.07) 0px, rgba(100,50,200,0.07) 1px, transparent 1px, transparent 8px),
-        repeating-linear-gradient(-45deg, rgba(0,150,255,0.06) 0px, rgba(0,150,255,0.06) 1px, transparent 1px, transparent 8px);
       border-radius: 12px;
+      background:
+        repeating-linear-gradient(45deg,  rgba(201,162,39,0.08) 0px, rgba(201,162,39,0.08) 1px, transparent 1px, transparent 10px),
+        repeating-linear-gradient(-45deg, rgba(180,170,140,0.05) 0px, rgba(180,170,140,0.05) 1px, transparent 1px, transparent 10px);
+      pointer-events: none;
     }
-    .card-back-face .card-back-logo {
-      font-size: 2.8em;
-      filter: drop-shadow(0 0 12px rgba(120,80,255,0.8)) drop-shadow(0 0 25px rgba(0,180,255,0.5));
-      z-index: 1;
-      animation: cardBackFloat 3s ease-in-out infinite;
+    /* Inner rarity glow — bleeds from the front through the back edge */
+    .card-back-face::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: 9px;
+      border: 1px solid rgba(201,162,39,0.25);
+      box-shadow:
+        inset 0 0 18px rgba(201,162,39,0.15),
+        inset 0 0 6px  rgba(255,255,255,0.05);
+      animation: cardBackInnerGlow 2.6s ease-in-out infinite;
+      pointer-events: none;
     }
-    @keyframes cardBackFloat {
-      0%   { transform: translateY(0) scale(1.0);  filter: drop-shadow(0 0 12px rgba(120,80,255,0.8)) drop-shadow(0 0 25px rgba(0,180,255,0.5)); }
-      50%  { transform: translateY(-6px) scale(1.08); filter: drop-shadow(0 0 18px rgba(120,80,255,1)) drop-shadow(0 0 35px rgba(0,180,255,0.8)); }
-      100% { transform: translateY(0) scale(1.0);  filter: drop-shadow(0 0 12px rgba(120,80,255,0.8)) drop-shadow(0 0 25px rgba(0,180,255,0.5)); }
+    @keyframes cardBackInnerGlow {
+      0%, 100% { opacity: 0.65; }
+      50%       { opacity: 1.0; }
+    }
+    /* Hieroglyph strips top + bottom */
+    .card-back-hier-strip {
+      position: absolute;
+      left: 0; right: 0;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      letter-spacing: 6px;
+      color: rgba(201,162,39,0.45);
+      pointer-events: none;
+      z-index: 3;
+      overflow: hidden;
+    }
+    .card-back-hier-top { top: 4px;  }
+    .card-back-hier-bot { bottom: 4px; }
+    /* Eye of Horus centre container */
+    .card-back-horus {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: cardBackHorusPulse 3s ease-in-out infinite;
+    }
+    @keyframes cardBackHorusPulse {
+      0%, 100% { filter: drop-shadow(0 0 6px rgba(201,162,39,0.55)) drop-shadow(0 0 14px rgba(201,162,39,0.3)); }
+      50%       { filter: drop-shadow(0 0 12px rgba(201,162,39,0.85)) drop-shadow(0 0 28px rgba(255,215,0,0.5)); }
+    }
+    /* CRT scan-line overlay on card back */
+    .card-back-scanline {
+      position: absolute;
+      inset: 0;
+      border-radius: 12px;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px);
+      pointer-events: none;
+      z-index: 4;
     }
     /* When flipped, show front */
     .upgrade-card.card-flipped .card-inner {
       transform: rotateY(180deg);
     }
-    /* Flip animation with overshoot + land thud */
+    /* Flip-in-place settle helper */
     .upgrade-card.card-flipping .card-inner {
-      transition: transform 0.55s cubic-bezier(0.34, 1.45, 0.64, 1);
+      transition: transform 0.5s cubic-bezier(0.22, 1.8, 0.36, 1);
     }
 
     /* Card reveal rotation - sequential one-by-one entrance */
@@ -3403,66 +3452,67 @@
       }
     }
 
-    /* ─── 6 unique card entry animations ─── */
-    /* 1: Drops from top, overshoots, settles with bounce */
+    /* ─── 6 unique card entry animations (different direction per card) ─── */
+    /* 1: Slams in from top — squash-and-stretch impact */
     @keyframes cardEnterFromTop {
-      0%   { opacity:0; transform: translate(0,-200%) scale(0.5) rotate(8deg); filter:blur(3px); }
-      55%  { opacity:1; transform: translate(0, 12%) scale(1.07) rotate(-2deg); filter:blur(0); }
-      72%  { transform: translate(0,-5%) scale(0.97) rotate(1deg); }
-      86%  { transform: translate(0, 3%) scale(1.02) rotate(-0.5deg); }
-      100% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
+      0%   { opacity:0; transform: translate(0,-280%) scaleX(0.6) scaleY(0.5); filter:blur(4px); }
+      45%  { opacity:1; transform: translate(0, 4%) scaleX(1.12) scaleY(0.85); filter:blur(0); }
+      62%  { transform: translate(0,-3%) scaleX(0.95) scaleY(1.08); }
+      78%  { transform: translate(0, 1%) scaleX(1.04) scaleY(0.97); }
+      90%  { transform: translate(0,-0.5%) scaleX(0.99) scaleY(1.01); }
+      100% { opacity:1; transform: translate(0,0) scale(1); }
     }
-    /* 2: Rockets in from left, spins and smacks into place */
+    /* 2: Rockets in from left, smacks into place */
     @keyframes cardEnterFromLeft {
-      0%   { opacity:0; transform: translate(-280%,0) scale(0.4) rotate(-20deg); filter:blur(4px); }
-      50%  { opacity:1; transform: translate(8%,0) scale(1.08) rotate(3deg); filter:blur(0); }
-      70%  { transform: translate(-4%,0) scale(0.96) rotate(-1deg); }
-      85%  { transform: translate(2%,0) scale(1.02) rotate(0.5deg); }
+      0%   { opacity:0; transform: translate(-300%,0) scale(0.4) rotate(-12deg); filter:blur(4px); }
+      48%  { opacity:1; transform: translate(6%,0) scaleX(0.88) scaleY(1.1) rotate(2deg); filter:blur(0); }
+      65%  { transform: translate(-3%,0) scaleX(1.08) scaleY(0.95) rotate(-1deg); }
+      82%  { transform: translate(1%,0) scaleX(0.98) scaleY(1.02) rotate(0.3deg); }
       100% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
     }
     /* 3: Blasts in from right */
     @keyframes cardEnterFromRight {
-      0%   { opacity:0; transform: translate(280%,0) scale(0.4) rotate(20deg); filter:blur(4px); }
-      50%  { opacity:1; transform: translate(-8%,0) scale(1.08) rotate(-3deg); filter:blur(0); }
-      70%  { transform: translate(4%,0) scale(0.96) rotate(1deg); }
-      85%  { transform: translate(-2%,0) scale(1.02) rotate(-0.5deg); }
+      0%   { opacity:0; transform: translate(300%,0) scale(0.4) rotate(12deg); filter:blur(4px); }
+      48%  { opacity:1; transform: translate(-6%,0) scaleX(0.88) scaleY(1.1) rotate(-2deg); filter:blur(0); }
+      65%  { transform: translate(3%,0) scaleX(1.08) scaleY(0.95) rotate(1deg); }
+      82%  { transform: translate(-1%,0) scaleX(0.98) scaleY(1.02) rotate(-0.3deg); }
       100% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
     }
-    /* 4: Erupts from bottom like a rocket */
+    /* 4: Erupts from bottom */
     @keyframes cardEnterFromBottom {
-      0%   { opacity:0; transform: translate(0,280%) scale(0.3) rotate(-10deg); filter:blur(4px); }
-      55%  { opacity:1; transform: translate(0,-10%) scale(1.1) rotate(2deg); filter:blur(0); }
-      72%  { transform: translate(0,5%) scale(0.96) rotate(-1deg); }
-      86%  { transform: translate(0,-2%) scale(1.02) rotate(0.5deg); }
+      0%   { opacity:0; transform: translate(0,300%) scaleX(0.5) scaleY(0.6) rotate(-8deg); filter:blur(4px); }
+      48%  { opacity:1; transform: translate(0,-6%) scaleX(1.1) scaleY(0.88) rotate(2deg); filter:blur(0); }
+      65%  { transform: translate(0,3%) scaleX(0.95) scaleY(1.08) rotate(-1deg); }
+      82%  { transform: translate(0,-1%) scaleX(1.02) scaleY(0.98) rotate(0.3deg); }
       100% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
     }
-    /* 5: Pops from nothing at center — zooms in from tiny */
+    /* 5: Pops from nothing at center */
     @keyframes cardEnterZoomPop {
       0%   { opacity:0; transform: scale(0) rotate(0deg); filter:blur(8px); }
-      40%  { opacity:1; transform: scale(1.25) rotate(-5deg); filter:blur(1px); }
-      65%  { transform: scale(0.92) rotate(2deg); filter:blur(0); }
-      80%  { transform: scale(1.06) rotate(-1deg); }
-      90%  { transform: scale(0.98) rotate(0.5deg); }
+      38%  { opacity:1; transform: scale(1.22) rotate(-4deg); filter:blur(1px); }
+      58%  { transform: scaleX(0.9) scaleY(1.08) rotate(1.5deg); filter:blur(0); }
+      74%  { transform: scale(1.05) rotate(-0.5deg); }
+      88%  { transform: scaleX(0.99) scaleY(1.01) rotate(0.2deg); }
       100% { opacity:1; transform: scale(1) rotate(0deg); }
     }
-    /* 6: Diagonal spiral from top-right corner */
+    /* 6: Diagonal slam from top-right */
     @keyframes cardEnterSpiral {
-      0%   { opacity:0; transform: translate(200%,-200%) scale(0.1) rotate(360deg); filter:blur(6px); }
-      55%  { opacity:1; transform: translate(-4%,4%) scale(1.06) rotate(-8deg); filter:blur(0); }
-      72%  { transform: translate(2%,-2%) scale(0.97) rotate(3deg); }
-      86%  { transform: translate(-1%,1%) scale(1.02) rotate(-1deg); }
+      0%   { opacity:0; transform: translate(220%,-220%) scale(0.15) rotate(270deg); filter:blur(6px); }
+      50%  { opacity:1; transform: translate(-3%,3%) scaleX(1.1) scaleY(0.88) rotate(-5deg); filter:blur(0); }
+      66%  { transform: translate(2%,-2%) scaleX(0.95) scaleY(1.07) rotate(2deg); }
+      82%  { transform: translate(-1%,1%) scaleX(1.03) scaleY(0.98) rotate(-0.5deg); }
       100% { opacity:1; transform: translate(0,0) scale(1) rotate(0deg); }
     }
 
-    /* Card thud flash — brief screen shake-like highlight when card smacks into place */
+    /* Card thud flash — bright impact burst when card smacks into place */
     @keyframes cardThudFlash {
-      0%   { box-shadow: 0 0 0 4px rgba(255,255,255,0.0); }
-      15%  { box-shadow: 0 0 0 8px rgba(255,255,255,0.6), 0 0 30px rgba(255,255,255,0.4); }
-      60%  { box-shadow: 0 0 0 4px rgba(255,255,255,0.1); }
+      0%   { box-shadow: 0 0 0 0px rgba(255,255,255,0.0); }
+      12%  { box-shadow: 0 0 0 12px rgba(255,255,255,0.75), 0 0 45px rgba(255,255,255,0.55), 0 0 80px rgba(200,220,255,0.3); }
+      35%  { box-shadow: 0 0 0 6px rgba(255,255,255,0.25), 0 0 20px rgba(255,255,255,0.2); }
       100% { box-shadow: none; }
     }
     .card-thud-flash {
-      animation: cardThudFlash 0.35s ease-out forwards !important;
+      animation: cardThudFlash 0.42s ease-out forwards !important;
     }
 
     /* ─── Green selection edge animation ─── */
@@ -11947,4 +11997,24 @@
 }
 .screen-shake-brief {
   animation: screenShakeBrief 0.2s ease-out forwards;
+}
+
+/* ─── Black hole whirlpool ─── */
+@keyframes bhWhirlExpand {
+  0%   { transform: translate(-50%,-50%) scale(0) rotate(0deg);   opacity: 0; }
+  15%  { opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1) rotate(-540deg); opacity: 1; }
+}
+@keyframes bhWhirlContract {
+  0%   { transform: translate(-50%,-50%) scale(1) rotate(0deg);   opacity: 1; }
+  60%  { transform: translate(-50%,-50%) scale(0.08) rotate(360deg); opacity: 0.6; }
+  100% { transform: translate(-50%,-50%) scale(0) rotate(540deg);  opacity: 0; }
+}
+@keyframes bhRingSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes bhRingSpinRev {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(-360deg); }
 }

@@ -369,13 +369,12 @@ window.spawnBossChest = function(x, z) {
 // ── End ARPG Deep Mechanics preamble ─────────────────────────────────────────
 
     // ─── Card Shard Explosion ─────────────────────────────────────────────────
-    // Shatters a card element into many flying pieces that blast out in all directions.
+    // Shatters a card into flying pieces — regular blast + confetti + toward-camera 3D pieces.
     function _explodeCardShards(cardEl) {
       if (!cardEl) return;
       const rect = cardEl.getBoundingClientRect();
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
-      const SHARD_COUNT = 28;
 
       // Get the card's rarity color for shard tinting
       const rarityClass = Array.from(cardEl.classList).find(c => c.startsWith('rarity-')) || '';
@@ -388,59 +387,99 @@ window.spawnBossChest = function(x, z) {
         'rarity-mythical':  '#ff3300',
       };
       const shardColor = rarityColors[rarityClass] || '#cccccc';
+      // Accent color: white/gold for premium look
+      const accentColor = '#fff';
 
+      // ── Toward-camera pieces: grow large as they "fly through the screen" ──
+      const TOWARD_COUNT = 7;
+      for (let _ti = 0; _ti < TOWARD_COUNT; _ti++) {
+        const piece = document.createElement('div');
+        const angle = (_ti / TOWARD_COUNT) * Math.PI * 2;
+        const driftX = Math.cos(angle) * (30 + Math.random() * 80);
+        const driftY = Math.sin(angle) * (30 + Math.random() * 60) - 30; // bias upward
+        const baseSize = 8 + Math.random() * 14;
+        const rot0 = Math.random() * 360;
+        const startTime = performance.now();
+        const dur = 380 + Math.random() * 160;
+
+        piece.style.cssText = [
+          'position:fixed',
+          `left:${cx}px`, `top:${cy}px`,
+          `width:${baseSize}px`, `height:${baseSize * 1.35}px`,
+          `background:linear-gradient(135deg,${shardColor},${accentColor})`,
+          'opacity:1', 'pointer-events:none', 'z-index:10600',
+          `transform:translate(-50%,-50%) scale(0.15) rotate(${rot0}deg)`,
+          'border-radius:2px',
+          `box-shadow:0 0 8px ${shardColor},0 0 20px ${shardColor}88`,
+          'will-change:transform,opacity',
+        ].join(';');
+        document.body.appendChild(piece);
+
+        (function _animTow(el, _dx, _dy, _r0, _bs, _dur) {
+          const elapsed = performance.now() - startTime;
+          const t = Math.min(1, elapsed / _dur);
+          // Scale from 0.15 → ~5 (comes toward camera), then past you
+          const scale = 0.15 + t * 5.0;
+          const curX = cx + _dx * t * 0.5;
+          const curY = cy + _dy * t * 0.5;
+          const curRot = _r0 + t * 90;
+          const op = t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45;
+          el.style.left = curX + 'px';
+          el.style.top = curY + 'px';
+          el.style.transform = `translate(-50%,-50%) scale(${scale}) rotate(${curRot}deg)`;
+          el.style.opacity = Math.max(0, op);
+          if (t < 1) requestAnimationFrame(() => _animTow(el, _dx, _dy, _r0, _bs, _dur));
+          else el.remove();
+        })(piece, driftX, driftY, rot0, baseSize, dur);
+      }
+
+      // ── Regular blast shards in all directions ──
+      const SHARD_COUNT = 36;
       for (let i = 0; i < SHARD_COUNT; i++) {
         const shard = document.createElement('div');
-        const angle = (i / SHARD_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-        const speed = 250 + Math.random() * 550;
-        const size = 6 + Math.random() * 20;
-        const aspectW = 0.4 + Math.random() * 2.2;
+        const angle = (i / SHARD_COUNT) * Math.PI * 2 + (Math.random() - 0.5) * 0.5;
+        const speed = 220 + Math.random() * 580;
+        const size = 5 + Math.random() * 18;
+        const aspectW = 0.4 + Math.random() * 2.4;
         const rot0 = Math.random() * 360;
-        const rotSpeed = (Math.random() - 0.5) * 900;
+        const rotSpeed = (Math.random() - 0.5) * 1000;
+        // Alternate between rarity color, gold accent, and white
+        const col = i % 3 === 0 ? shardColor : (i % 3 === 1 ? '#ffd700' : accentColor);
 
         shard.style.cssText = [
           'position:fixed',
-          `left:${cx}px`,
-          `top:${cy}px`,
-          `width:${size * aspectW}px`,
-          `height:${size}px`,
-          `background:${shardColor}`,
-          `opacity:1`,
-          'pointer-events:none',
-          `z-index:10500`,
+          `left:${cx}px`, `top:${cy}px`,
+          `width:${size * aspectW}px`, `height:${size}px`,
+          `background:${col}`,
+          'opacity:1', 'pointer-events:none', `z-index:10500`,
           `transform:translate(-50%,-50%) rotate(${rot0}deg)`,
-          `border-radius:${Math.random() < 0.4 ? '2px' : '0px'}`,
-          `box-shadow:0 0 6px ${shardColor}`,
+          `border-radius:${Math.random() < 0.35 ? '50%' : '2px'}`,
+          `box-shadow:0 0 5px ${col}`,
           'will-change:transform,opacity',
         ].join(';');
         document.body.appendChild(shard);
 
         const vx = Math.cos(angle) * speed;
         const vy = Math.sin(angle) * speed;
-        let curX = cx;
-        let curY = cy;
-        let curRot = rot0;
-        let opacity = 1;
         const startTime = performance.now();
-        const duration = 600 + Math.random() * 400;
+        const duration = 550 + Math.random() * 450;
 
-        (function animate(sEl, _vx, _vy, _vr, _dur) {
+        (function _animShard(sEl, _vx, _vy, _vr, _dur, _r0) {
           const elapsed = performance.now() - startTime;
           const t = elapsed / _dur;
           if (t >= 1) { sEl.remove(); return; }
-          const eased = 1 - t * t; // ease-out quad
-          // Use elapsed-based position for frame-rate independence
+          const eased = 1 - t * t;
           const tSec = elapsed / 1000;
-          curX = cx + _vx * tSec * eased;
-          curY = cy + _vy * tSec * eased + 100 * tSec * tSec; // gravity term
-          curRot = rot0 + _vr * tSec;
-          opacity = Math.max(0, 1 - t * 1.2);
+          const curX = cx + _vx * tSec * eased;
+          const curY = cy + _vy * tSec * eased + 110 * tSec * tSec; // gravity
+          const curRot = _r0 + _vr * tSec;
+          const op = Math.max(0, 1 - t * 1.1);
           sEl.style.left = curX + 'px';
           sEl.style.top = curY + 'px';
           sEl.style.transform = `translate(-50%,-50%) rotate(${curRot}deg)`;
-          sEl.style.opacity = opacity;
-          requestAnimationFrame(function() { animate(sEl, _vx, _vy, _vr, _dur); });
-        })(shard, vx, vy, rotSpeed, duration);
+          sEl.style.opacity = op;
+          requestAnimationFrame(() => _animShard(sEl, _vx, _vy, _vr, _dur, _r0));
+        })(shard, vx, vy, rotSpeed, duration, rot0);
       }
     }
 
@@ -1619,13 +1658,61 @@ window.spawnBossChest = function(x, z) {
         const cardInner = document.createElement('div');
         cardInner.className = 'card-inner';
 
-        // Back face (shown during entry, before flip)
+        // Set rarity colour CSS variable on the card for the back-face glow bleed
+        card.style.setProperty('--rarity-color', cardColor);
+
+        // ─── Back face: black/gold/silver Aida-style with Eye of Horus ───
         const cardBackFace = document.createElement('div');
         cardBackFace.className = 'card-face card-back-face';
-        const backLogo = document.createElement('div');
-        backLogo.className = 'card-back-logo';
-        backLogo.textContent = '💧';
-        cardBackFace.appendChild(backLogo);
+        // Rarity glow bleeds through back edges, making rarity visible before flip
+        cardBackFace.style.boxShadow = `inset 0 0 22px ${cardColor}30, inset 0 0 8px ${cardColor}18`;
+
+        // Eye of Horus SVG — inline, no external asset, styled to match Aida cinematic
+        const _backHorusEl = document.createElement('div');
+        _backHorusEl.className = 'card-back-horus';
+        _backHorusEl.innerHTML = [
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" width="96" height="67">',
+          '<g fill="none" stroke="#C9A227" stroke-width="1.8">',
+          '<path d="M10 70 Q100 10 190 70 Q100 130 10 70 Z" stroke-opacity="0.9"/>',
+          '<circle cx="100" cy="70" r="28" stroke-opacity="0.85"/>',
+          '<circle cx="100" cy="70" r="12" fill="#C9A227" fill-opacity="0.45"/>',
+          '<circle cx="95" cy="64" r="4.5" fill="#FFD700" fill-opacity="0.65"/>',
+          '<path d="M70 95 L58 118 L72 128" stroke-opacity="0.8"/>',
+          '<path d="M130 88 L148 105 L138 115" stroke-opacity="0.8"/>',
+          '<line x1="80" y1="50" x2="75" y2="38" stroke-opacity="0.7"/>',
+          '<line x1="100" y1="44" x2="100" y2="30" stroke-opacity="0.7"/>',
+          '<line x1="120" y1="50" x2="125" y2="38" stroke-opacity="0.7"/>',
+          '<path d="M40 40 Q100 20 160 40" stroke-width="1.1" stroke-opacity="0.6"/>',
+          '<path d="M72 70 Q86 58 100 70 Q114 82 128 70" stroke-width="0.9" stroke-opacity="0.45"/>',
+          '</g>',
+          '<g fill="#C0C0C0" fill-opacity="0.65">',
+          '<circle cx="14" cy="14" r="2.2"/><circle cx="186" cy="14" r="2.2"/>',
+          '<circle cx="14" cy="126" r="2.2"/><circle cx="186" cy="126" r="2.2"/>',
+          '</g>',
+          '<g fill="#C9A227" fill-opacity="0.72" font-family="serif" font-size="15">',
+          '<text x="4" y="17">𓂀</text><text x="178" y="17">𓁿</text>',
+          '<text x="4" y="136">𓆣</text><text x="178" y="136">𓃭</text>',
+          '</g>',
+          '</svg>',
+        ].join('');
+        cardBackFace.appendChild(_backHorusEl);
+
+        // Hieroglyph border strip — top
+        const _bhierTop = document.createElement('div');
+        _bhierTop.className = 'card-back-hier-strip card-back-hier-top';
+        _bhierTop.textContent = '𓂀 𓁿 𓆣 𓃭';
+        cardBackFace.appendChild(_bhierTop);
+
+        // Hieroglyph border strip — bottom
+        const _bhierBot = document.createElement('div');
+        _bhierBot.className = 'card-back-hier-strip card-back-hier-bot';
+        _bhierBot.textContent = '𓃭 𓆣 𓁿 𓂀';
+        cardBackFace.appendChild(_bhierBot);
+
+        // CRT scan-line overlay (Aida-style)
+        const _bScan = document.createElement('div');
+        _bScan.className = 'card-back-scanline';
+        cardBackFace.appendChild(_bScan);
 
         // Front face (revealed after flip)
         const cardFront = document.createElement('div');
@@ -1653,33 +1740,33 @@ window.spawnBossChest = function(x, z) {
         cardInner.appendChild(cardFront);
         card.appendChild(cardInner);
 
-        // ── 6 different entry animations (randomly assigned) ──
+        // ── 6 different entry animations (different direction per card) ──
         const _cardEntryAnims = [
-          'cardEnterFromTop',    // 0: drops from top
+          'cardEnterFromTop',    // 0: slams from top
           'cardEnterFromLeft',   // 1: rockets from left
           'cardEnterFromRight',  // 2: blasts from right
           'cardEnterFromBottom', // 3: erupts from bottom
           'cardEnterZoomPop',    // 4: pops from center
-          'cardEnterSpiral',     // 5: diagonal spiral
+          'cardEnterSpiral',     // 5: diagonal slam from top-right
         ];
         const _animName = _cardEntryAnims[index % _cardEntryAnims.length];
-        const _animDur = 0.65;
-        // Stagger: 0.3s wall + 0.22s between each card
-        const cardDelay = 0.3 + (index * 0.22);
+        const _animDur = 0.55;
+        // Stagger: 0.3s wall delay + 0.24s between cards for dramatic sequential slams
+        const cardDelay = 0.3 + (index * 0.24);
         card.style.opacity = '0';
         card.style.pointerEvents = 'none'; // Disable clicks until flipped
-        card.style.animation = `${_animName} ${_animDur}s cubic-bezier(0.34, 1.45, 0.64, 1) ${cardDelay}s both`;
+        card.style.animation = `${_animName} ${_animDur}s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${cardDelay}s both`;
 
         // After entry animation completes, flash the thud effect
         card.addEventListener('animationend', (e) => {
-          const entryAnims = new Set(_cardEntryAnims);
-          if (e.animationName && entryAnims.has(e.animationName)) {
+          const _entryAnimSet = new Set(_cardEntryAnims);
+          if (e.animationName && _entryAnimSet.has(e.animationName)) {
             card.style.animation = '';
             card.style.opacity = '1';
             card.style.transform = '';
             // Thud flash
             card.classList.add('card-thud-flash');
-            setTimeout(() => card.classList.remove('card-thud-flash'), 380);
+            setTimeout(() => card.classList.remove('card-thud-flash'), 420);
             document.body.classList.add('screen-shake-brief');
             setTimeout(() => document.body.classList.remove('screen-shake-brief'), 200);
           }
@@ -1833,31 +1920,87 @@ window.spawnBossChest = function(x, z) {
                 card.style.pointerEvents = 'none';
               }, 80);
 
-              // Wait 0.2s after shards, then close everything
+              // Wait 0.2s after shards, then close everything with black-hole whirlpool
               setTimeout(() => {
-                // Black hole suck-in effect
+                // ── Black hole whirlpool — spin → expand → suck → collapse → vanish ──
                 try {
-                  const bhDiv = document.createElement('div');
-                  bhDiv.style.cssText = 'position:fixed;top:50%;left:50%;width:4px;height:4px;background:radial-gradient(circle,#000 30%,#0a0a2a 60%,transparent);border-radius:50%;transform:translate(-50%,-50%);z-index:99999;transition:all 0.6s cubic-bezier(0.55,0,1,0.45);pointer-events:none;';
-                  document.body.appendChild(bhDiv);
+                  // Outer wrapper: positions at screen center, spins+expands during suck phase
+                  const bhWrap = document.createElement('div');
+                  bhWrap.style.cssText = [
+                    'position:fixed','top:50%','left:50%',
+                    'width:0px','height:0px',
+                    'transform:translate(-50%,-50%)',
+                    'z-index:99999','pointer-events:none',
+                  ].join(';');
 
+                  // Dark core — grows to swallow screen
+                  const bhCore = document.createElement('div');
+                  bhCore.style.cssText = [
+                    'position:absolute','border-radius:50%',
+                    'width:6px','height:6px',
+                    'top:50%','left:50%',
+                    'transform:translate(-50%,-50%)',
+                    'background:radial-gradient(circle,#000 35%,#05000a 65%,transparent 100%)',
+                    'animation:bhWhirlExpand 0.9s cubic-bezier(0.55,0,1,0.45) forwards',
+                    'will-change:transform',
+                  ].join(';');
+
+                  // Spinning rings (whirlpool visual)
+                  const bhRingDefs = [
+                    // [size, borderWidth, color, spinDuration, direction]
+                    ['90px',  '3px', 'rgba(255,255,255,0.55)', '0.35s', 'bhRingSpin'],
+                    ['160px', '2px', 'rgba(180,120,255,0.4)',  '0.50s', 'bhRingSpinRev'],
+                    ['250px', '2px', 'rgba(100,180,255,0.3)',  '0.70s', 'bhRingSpin'],
+                    ['380px', '1px', 'rgba(255,200,80,0.2)',   '1.00s', 'bhRingSpinRev'],
+                    ['550px', '1px', 'rgba(255,255,255,0.12)', '1.40s', 'bhRingSpin'],
+                  ];
+                  const bhRings = [];
+                  bhRingDefs.forEach(([sz, bw, col, sd, anim]) => {
+                    const r = document.createElement('div');
+                    r.style.cssText = [
+                      'position:absolute','border-radius:50%',
+                      `width:${sz}`,`height:${sz}`,
+                      'top:50%','left:50%',
+                      'transform:translate(-50%,-50%) scale(0)',
+                      `border:${bw} solid ${col}`,
+                      `animation:${anim} ${sd} linear infinite`,
+                      'opacity:0','will-change:transform,opacity',
+                    ].join(';');
+                    bhWrap.appendChild(r);
+                    bhRings.push(r);
+                  });
+
+                  bhWrap.appendChild(bhCore);
+                  document.body.appendChild(bhWrap);
+
+                  // Step 1 (10ms): rings appear and grow while core expands
                   setTimeout(() => {
-                    bhDiv.style.width = '200vmax';
-                    bhDiv.style.height = '200vmax';
-                    bhDiv.style.background = 'radial-gradient(circle,#000 20%,#001133 50%,transparent)';
-                    bhDiv.style.opacity = '1';
-                    bhDiv.style.transform = 'translate(-50%,-50%) scale(1) rotate(180deg)';
+                    bhRings.forEach((r, _ri) => {
+                      setTimeout(() => {
+                        r.style.transition = `transform 0.6s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease-out`;
+                        r.style.transform = 'translate(-50%,-50%) scale(1)';
+                        r.style.opacity = '1';
+                      }, _ri * 80);
+                    });
                   }, 10);
 
+                  // Step 2 (900ms): core has expanded — hold a moment so the whirlpool is visible
+                  // then collapse everything back to nothing
                   setTimeout(() => {
-                    bhDiv.style.transition = 'all 0.4s ease-in';
-                    bhDiv.style.opacity = '0';
-                    bhDiv.style.transform = 'translate(-50%,-50%) scale(0) rotate(360deg)';
-                  }, 610);
+                    bhCore.style.animation = 'bhWhirlContract 0.6s cubic-bezier(0.55,0,1,0.45) forwards';
+                    bhRings.forEach((r, _ri) => {
+                      setTimeout(() => {
+                        r.style.transition = 'transform 0.5s ease-in, opacity 0.4s ease-in';
+                        r.style.transform = 'translate(-50%,-50%) scale(0)';
+                        r.style.opacity = '0';
+                      }, _ri * 60);
+                    });
+                  }, 900);
 
+                  // Step 3 (1550ms): remove DOM node
                   setTimeout(() => {
-                    if (bhDiv.parentNode) bhDiv.parentNode.removeChild(bhDiv);
-                  }, 1010);
+                    if (bhWrap.parentNode) bhWrap.parentNode.removeChild(bhWrap);
+                  }, 1550);
                 } catch (_bhe) { /* non-critical visual — ignore */ }
 
                 // PERF FIX: Clean up DOM elements and event listeners to prevent memory leaks
@@ -2015,23 +2158,49 @@ window.spawnBossChest = function(x, z) {
         modal.classList.add('lvl-entering');
         setTimeout(function() { modal.classList.remove('lvl-entering'); }, 700);
 
-        // ── After all cards have entered, flip them face-up one by one ──
+        // ── After all cards have landed, reveal face-up one by one ──
         const _numCards = choices.length;
-        // Time for last card to land: 0.3s wall + (n-1)*0.22s stagger + 0.65s anim
-        const _allEnteredMs = Math.round((0.3 + (_numCards - 1) * 0.22 + 0.65) * 1000) + 60;
+        // Time for last card to land: 0.3s wall + (n-1)*0.24s stagger + 0.55s entry anim
+        const _allEnteredMs = Math.round((0.3 + (_numCards - 1) * 0.24 + 0.55) * 1000) + 80;
         const _allCards = list.querySelectorAll('.upgrade-card');
         setTimeout(function() {
           for (let _fi = 0; _fi < _allCards.length; _fi++) {
             (function(_idx, _c) {
+              // Stagger 450 ms between each card for clear one-by-one reveal
               setTimeout(function() {
                 const _ci = _c.querySelector('.card-inner');
-                if (_ci) {
-                  _ci.style.transition = 'transform 0.52s cubic-bezier(0.34, 1.45, 0.64, 1)';
-                  _c.classList.add('card-flipped');
-                }
-                // Enable interaction only after flip
-                setTimeout(function() { _c.style.pointerEvents = 'auto'; }, 540);
-              }, _idx * 160);
+                if (!_ci) return;
+
+                // Phase 1 — Lift toward camera (scales up, translateZ forward)
+                _ci.style.transition = 'transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                _ci.style.transform = 'scale(1.18) translateZ(55px)';
+
+                setTimeout(function() {
+                  // Phase 2 — Flip fast (Y-axis 180°, card face comes into view)
+                  _ci.style.transition = 'transform 0.32s cubic-bezier(0.55, 0, 0.45, 1)';
+                  _ci.style.transform = 'scale(1.14) translateZ(40px) rotateY(180deg)';
+
+                  setTimeout(function() {
+                    // Phase 3 — Smack hard back to resting position (squash on impact)
+                    _ci.style.transition = 'transform 0.16s ease-in';
+                    _ci.style.transform = 'scaleX(1.1) scaleY(0.9) rotateY(180deg)';
+
+                    setTimeout(function() {
+                      // Phase 4 — Bounce settle
+                      _ci.style.transition = 'transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                      _ci.style.transform = 'rotateY(180deg)';
+                      _c.classList.add('card-flipped');
+
+                      // Screen shake on smack
+                      document.body.classList.add('screen-shake-brief');
+                      setTimeout(() => document.body.classList.remove('screen-shake-brief'), 200);
+
+                      // Enable clicks after settle
+                      setTimeout(function() { _c.style.pointerEvents = 'auto'; }, 260);
+                    }, 160);
+                  }, 320);
+                }, 280);
+              }, _idx * 450);
             })(_fi, _allCards[_fi]);
           }
         }, _allEnteredMs);
