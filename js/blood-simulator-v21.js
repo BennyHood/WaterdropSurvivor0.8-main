@@ -28,8 +28,10 @@ const _BSV21_MIST = {
   robot:         0xaaccff,
 };
 
-// Device capability detection — auto-scales pool sizes
-// Desktop >= 1200 drops / 800 mist; Mobile <= 120 / 64
+// Device capability detection — auto-scales pool sizes:
+// Low-memory/mobile (≤2GB or touch device): ≤120 drops / ≤64 mist
+// Mid-tier (≤4GB): 600 drops / 400 mist
+// Desktop/high-memory (>4GB): ≥1200 drops / ≥800 mist
 (function _bsv21DetectDevice() {
   const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)
     || ('ontouchstart' in window && navigator.maxTouchPoints > 1);

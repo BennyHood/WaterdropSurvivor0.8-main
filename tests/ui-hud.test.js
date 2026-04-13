@@ -61,11 +61,19 @@ describe('HUD element DOM order (left to right)', () => {
 
 // ── CSS layout sanity ─────────────────────────────────────────────────────────
 describe('HUD layout CSS', () => {
-  test('top-right row is fixed positioned', () => {
-    expect(sandboxHTML).toMatch(/#hud-top-right-row[\s\S]*?position:\s*fixed/m);
+  // Extract just the #hud-top-right-row CSS rule block for precise assertions
+  const ruleMatch = sandboxHTML.match(/#hud-top-right-row\s*\{([^}]+)\}/);
+  const ruleBody  = ruleMatch ? ruleMatch[1] : '';
+
+  test('top-right row rule block exists in sandbox.html <style>', () => {
+    expect(ruleMatch).not.toBeNull();
   });
 
-  test('row uses flexbox layout', () => {
-    expect(sandboxHTML).toMatch(/#hud-top-right-row[\s\S]*?flex-direction/m);
+  test('top-right row has position:fixed within its own rule block', () => {
+    expect(ruleBody).toMatch(/position:\s*fixed/);
+  });
+
+  test('top-right row has flex-direction within its own rule block', () => {
+    expect(ruleBody).toMatch(/flex-direction/);
   });
 });
