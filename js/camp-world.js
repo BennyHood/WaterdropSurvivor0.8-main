@@ -301,7 +301,7 @@
     while (_buildingObservers.length) _buildingObservers.pop().disconnect();
     _campScene = new THREE.Scene();
     _campScene.background = new THREE.Color(0x0a0c18); // deep night sky
-    _campScene.fog = new THREE.FogExp2(0x120e08, 0.035); // heavy fog/mist for culling
+    _campScene.fog = new THREE.FogExp2(0x0a0c18, 0.016); // atmospheric fog — dense enough to cull far trees, light enough to see lake at z=-52
 
     // ── Lighting ────────────────────────────────────────────
     // Warmer dim ambient – cozy sky light
@@ -1202,8 +1202,8 @@
     const lakeGeo = new THREE.CircleGeometry(20, 64);
     const lakeMat = new THREE.MeshPhongMaterial({
       color: 0x1a3a5c,
-      emissive: 0x0d1d2e,
-      emissiveIntensity: 0.18,
+      emissive: 0x1a4066,
+      emissiveIntensity: 0.55, // boosted so lake glows through fog from distance
       shininess: 140,
       specular: 0x88aaff,
       transparent: true,
@@ -1215,9 +1215,9 @@
     _lakeMesh.receiveShadow = false;
     _campScene.add(_lakeMesh);
 
-    // Enhanced blue lake glow
-    _lakeLight = new THREE.PointLight(0x3388cc, 2.0, 40, 2);
-    _lakeLight.position.set(LAKE_POS.x, 2, LAKE_POS.z);
+    // Enhanced blue lake glow — stronger so light is visible through the reduced fog
+    _lakeLight = new THREE.PointLight(0x4499dd, 4.0, 60, 1.5);
+    _lakeLight.position.set(LAKE_POS.x, 3, LAKE_POS.z);
     _campScene.add(_lakeLight);
 
     // Shore ring – larger to match new lake size
@@ -4514,9 +4514,9 @@
 
     if (level >= 1) {
       // Sickly digital-green sky
-      _campScene.background = new THREE.Color(0x030a03);
+      _campScene.background.setHex(0x030a03);
       if (_campScene.fog) {
-        _campScene.fog.color = new THREE.Color(0x061406);
+        _campScene.fog.color.setHex(0x030a03); // match background to avoid sky seam
       }
       if (_starsMesh && _starsMesh.material) {
         _starsMesh.material.color.set(0x00ff44);
@@ -4524,9 +4524,9 @@
       }
     } else {
       // Restore natural sky
-      _campScene.background = new THREE.Color(0x0a0c18);
+      _campScene.background.setHex(0x0a0c18);
       if (_campScene.fog) {
-        _campScene.fog.color = new THREE.Color(0x120e08);
+        _campScene.fog.color.setHex(0x0a0c18); // match background to avoid sky seam
       }
       if (_starsMesh && _starsMesh.material) {
         _starsMesh.material.color.set(0xffffff);
@@ -4799,9 +4799,10 @@
       _playerPos.z += _playerVel.z * dt;
     }
 
-    // Clamp
-    _playerPos.x = Math.max(-38, Math.min(38, _playerPos.x));
-    _playerPos.z = Math.max(-38, Math.min(38, _playerPos.z));
+    // Clamp — allow reaching the perimeter fence (MAP_RADIUS ≈ 55, clamp at 52 so player
+    // can touch the fence stakes but never clip through the ring geometry)
+    _playerPos.x = Math.max(-52, Math.min(52, _playerPos.x));
+    _playerPos.z = Math.max(-52, Math.min(52, _playerPos.z));
 
     // Update action timer
     if (_campActionAnim) {

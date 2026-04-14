@@ -496,15 +496,13 @@ window.spawnBossChest = function(x, z) {
       const h2 = modal.querySelector('h2');
       if (h2) {
         h2.innerText = isBonusRound ? 'BONUS LEVEL UP!' : 'LEVEL UP!';
-        h2.style.color = isBonusRound ? '#FFD700' : '#FFFFFF';
+        h2.style.color = '#FFD700'; // Always golden yellow — no white text
         h2.style.fontSize = isBonusRound ? '38px' : '52px';
         h2.style.fontFamily = 'Bangers, Impact, sans-serif';
         h2.style.fontWeight = 'bold';
         h2.style.letterSpacing = '6px';
         h2.style.textAlign = 'center';
-        h2.style.textShadow = isBonusRound
-          ? '0 0 20px #FFD700, 0 0 40px #FF8800, 2px 2px 0 #000'
-          : '0 0 20px #FF4400, 0 0 40px #FF8800, 2px 2px 0 #000';
+        h2.style.textShadow = '0 0 20px #FFD700, 0 0 40px #FF8800, 2px 2px 0 #000';
         h2.style.textTransform = 'uppercase';
         h2.style.animation = 'levelUpFly 1s ease-out forwards';
       }
@@ -2182,16 +2180,10 @@ window.spawnBossChest = function(x, z) {
 
       // --- Show overhead LEVEL UP! text first, then fire FX and show cards ---
       // Spawn a large floating "LEVEL UP!" text over the player immediately so
-      // the player sees it before the card modal appears.
-      try {
-        if (typeof createFloatingText === 'function' && typeof player !== 'undefined' && player && player.mesh) {
-          createFloatingText(isBonusRound ? '⭐ BONUS LEVEL UP! ⭐' : '⬆ LEVEL UP! ⬆', {
-            x: player.mesh.position.x,
-            y: player.mesh.position.y + 2.5,
-            z: player.mesh.position.z
-          }, isBonusRound ? '#FFD700' : '#FFFFFF', 2.2);
-        }
-      } catch (_fltErr) { /* non-critical */ }
+      // NOTE: sandbox-loop.js already fires _spawnSmallLevelUpText() (golden yellow) before
+      // showing the modal, so a second floating text here would create the "double text" bug.
+      // The duplicate call is intentionally removed — the h2 header inside the modal provides
+      // the second, golden-yellow "LEVEL UP!" label the player sees.
 
       // --- Dopamine level-up FX: explosion first, then show modal ---
       if (window.DopamineSystem && window.DopamineSystem.LevelUpFX) {

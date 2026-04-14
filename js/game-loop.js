@@ -266,6 +266,11 @@
     const _eyeSyncPos   = new THREE.Vector3();
     const _eyeSyncEuler = new THREE.Euler();   // identity (0,0,0) — eyes are spheres, no rotation needed
     const _eyeSyncScale = new THREE.Vector3(1, 1, 1);
+    // Pre-allocated shared muzzle-flash direction vector — reused by every weapon fire path
+    // (avoids `new THREE.Vector3()` per shot, which causes GC pressure at high fire rates)
+    const _tmpFlashDir  = new THREE.Vector3();
+    // Pre-allocated Color for per-projectile emissive assignments (avoids per-shot allocation)
+    const _tmpEmissiveColor = new THREE.Color();
 
     // ─── Frustum Culling ────────────────────────────────────────────────────────
     // Reusable Frustum + matrix objects — updated once per frame.
@@ -755,7 +760,7 @@
 
       let dt = (time - lastTime) / 1000;
       if (window.BloodV2) window.BloodV2.update(dt);
-      if (window.SlimePool) window.SlimePool.update(dt, player && player.mesh ? player.mesh.position : null);
+      if (window.BloodSimulatorV21 && typeof window.BloodSimulatorV21.update === 'function') window.BloodSimulatorV21.update(dt);
       if (window.WaveSpawner) window.WaveSpawner.update(dt, player && player.mesh ? player.mesh.position : null);
       if (window.HitDetection) window.HitDetection.update(dt, player && player.mesh ? player.mesh.position : null);
       lastTime = time;
@@ -1742,12 +1747,12 @@
               
               // Per-weapon muzzle flash system
               if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-                const flashDir = new THREE.Vector3(
+                _tmpFlashDir.set(
                   Math.sin(player.mesh.rotation.y),
                   0,
                   Math.cos(player.mesh.rotation.y)
                 );
-                window.spawnWeaponMuzzleFlash('gun', player.mesh.position, flashDir, scene);
+                window.spawnWeaponMuzzleFlash('gun', player.mesh.position, _tmpFlashDir, scene);
               }
 
               // Gun kickback effect - snappy recoil via scale squish
@@ -1783,12 +1788,12 @@
 
         // Per-weapon muzzle flash system
         if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-          const flashDir = new THREE.Vector3(
+          _tmpFlashDir.set(
             Math.sin(angle),
             0,
             Math.cos(angle)
           );
-          window.spawnWeaponMuzzleFlash('sword', player.mesh.position, flashDir, scene);
+          window.spawnWeaponMuzzleFlash('sword', player.mesh.position, _tmpFlashDir, scene);
         }
       }
 
@@ -1857,12 +1862,12 @@
 
         // Per-weapon muzzle flash system (casting effect from player)
         if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-          const dir = new THREE.Vector3(
+          _tmpFlashDir.set(
             targetX - player.mesh.position.x,
             0,
             targetZ - player.mesh.position.z
           ).normalize();
-          window.spawnWeaponMuzzleFlash('meteor', player.mesh.position, dir, scene);
+          window.spawnWeaponMuzzleFlash('meteor', player.mesh.position, _tmpFlashDir, scene);
         }
 
         weapons.meteor.lastShot = time;
@@ -1904,12 +1909,12 @@
 
             // Per-weapon muzzle flash system
             if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-              const dir = new THREE.Vector3(
+              _tmpFlashDir.set(
                 nearestEnemy.mesh.position.x - drone.mesh.position.x,
                 0,
                 nearestEnemy.mesh.position.z - drone.mesh.position.z
               ).normalize();
-              window.spawnWeaponMuzzleFlash('droneTurret', drone.mesh.position, dir, scene);
+              window.spawnWeaponMuzzleFlash('droneTurret', drone.mesh.position, _tmpFlashDir, scene);
             }
 
             playSound('shoot');
@@ -1973,12 +1978,12 @@
 
           // Per-weapon muzzle flash system
           if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-            const flashDir = new THREE.Vector3(
+            _tmpFlashDir.set(
               Math.sin(player.mesh.rotation.y),
               0,
               Math.cos(player.mesh.rotation.y)
             );
-            window.spawnWeaponMuzzleFlash('doubleBarrel', player.mesh.position, flashDir, scene);
+            window.spawnWeaponMuzzleFlash('doubleBarrel', player.mesh.position, _tmpFlashDir, scene);
           }
 
           weapons.doubleBarrel.lastShot = time;
@@ -2004,12 +2009,12 @@
 
           // Per-weapon muzzle flash system
           if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-            const dir = new THREE.Vector3(
+            _tmpFlashDir.set(
               nearest.mesh.position.x - player.mesh.position.x,
               0,
               nearest.mesh.position.z - player.mesh.position.z
             ).normalize();
-            window.spawnWeaponMuzzleFlash('iceSpear', player.mesh.position, dir, scene);
+            window.spawnWeaponMuzzleFlash('iceSpear', player.mesh.position, _tmpFlashDir, scene);
           }
 
           weapons.iceSpear.lastShot = time;
@@ -2177,12 +2182,12 @@
 
           // Per-weapon muzzle flash system
           if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-            const dir = new THREE.Vector3(
+            _tmpFlashDir.set(
               nearest.mesh.position.x - player.mesh.position.x,
               0,
               nearest.mesh.position.z - player.mesh.position.z
             ).normalize();
-            window.spawnWeaponMuzzleFlash('lightning', nearest.mesh.position, dir, scene);
+            window.spawnWeaponMuzzleFlash('lightning', nearest.mesh.position, _tmpFlashDir, scene);
           }
 
           weapons.lightning.lastShot = time;
@@ -2354,12 +2359,12 @@
 
           // Per-weapon muzzle flash system
           if (typeof window.spawnWeaponMuzzleFlash === 'function') {
-            const dir = new THREE.Vector3(
+            _tmpFlashDir.set(
               nearest.mesh.position.x - player.mesh.position.x,
               0,
               nearest.mesh.position.z - player.mesh.position.z
             ).normalize();
-            window.spawnWeaponMuzzleFlash('homingMissile', player.mesh.position, dir, scene);
+            window.spawnWeaponMuzzleFlash('homingMissile', player.mesh.position, _tmpFlashDir, scene);
           }
 
           weapons.homingMissile.lastShot = time;
@@ -2631,7 +2636,8 @@
           p.isFireball = true;
           p.explosionRadius = weapons.fireball.explosionRadius || 3;
           p.mesh.material.color.setHex(0xFF4400);
-          p.mesh.material.emissive = new THREE.Color(0xFF2200);
+          _tmpEmissiveColor.setHex(0xFF2200);
+          p.mesh.material.emissive = _tmpEmissiveColor;
           p.mesh.material.emissiveIntensity = 0.6;
           p.mesh.scale.set(0.6, 0.6, 0.6);
           _rescaleProjSpeed(p, 0.35); // fireballs are lobbed slowly for explosive area damage
@@ -2994,6 +3000,7 @@
       // Update advanced blood particle system
       if (window.BloodSystem) window.BloodSystem.update();
       if (window.BloodV2) window.BloodV2.update(dt);
+      if (window.BloodSimulatorV21 && typeof window.BloodSimulatorV21.update === 'function') window.BloodSimulatorV21.update(dt);
       if (window.GoreSim) window.GoreSim.update(dt);
       // Update trauma system (gore chunks, stuck arrows, wound decals)
       if (window.TraumaSystem) window.TraumaSystem.update();
