@@ -240,6 +240,10 @@ window.RunEndScreen = (function () {
     _callbacks = callbacks || {};
     _injectCSS();
 
+    var stale = document.getElementById('res-overlay');
+    if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+    _overlay = null;
+
     // Hide the legacy gameover div so there's no overlap
     var legacyScreen = document.getElementById('gameover-screen');
     if (legacyScreen) legacyScreen.style.display = 'none';
@@ -264,6 +268,8 @@ window.RunEndScreen = (function () {
   //  Build DOM
   // ─────────────────────────────────────────────────────────────
   function _buildOverlay(stats) {
+    var existing = document.getElementById('res-overlay');
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
     _overlay = document.createElement('div');
     _overlay.id = 'res-overlay';
 

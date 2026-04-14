@@ -1010,11 +1010,12 @@
 
     // Main cylinder body — matte black, partially submerged
     const bodyGeo = new THREE.CylinderGeometry(1.2, 1.2, 3.0, 24, 1, true); // open-ended
-    const bodyMat = new THREE.MeshPhongMaterial({
-      color: 0x0a0a0a,
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x888888, // safe fallback so the elevator never renders pink/missing
+      roughness: 0.42,
+      metalness: 0.82,
       emissive: 0x050505,
       emissiveIntensity: 0.05,
-      shininess: 30,
       side: THREE.DoubleSide,
     });
     const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -1024,12 +1025,12 @@
     // Gold contour rings
     for (let r = 0; r < 3; r++) {
       const ringGeo = new THREE.TorusGeometry(1.22, 0.03, 8, 32);
-      const ringMat = new THREE.MeshPhongMaterial({
+      const ringMat = new THREE.MeshStandardMaterial({
         color: 0xccaa44,
         emissive: 0x665520,
         emissiveIntensity: 0.3,
-        shininess: 100,
-        specular: 0xffdd88,
+        roughness: 0.3,
+        metalness: 0.85,
       });
       const ring = new THREE.Mesh(ringGeo, ringMat);
       ring.rotation.x = Math.PI / 2;
@@ -1039,12 +1040,12 @@
 
     // Door contour lines (silver vertical strips)
     const doorGeo = new THREE.BoxGeometry(0.04, 2.0, 0.04);
-    const doorMat = new THREE.MeshPhongMaterial({
-      color: 0xaaaaaa,
+    const doorMat = new THREE.MeshStandardMaterial({
+      color: 0x888888,
       emissive: 0x444444,
       emissiveIntensity: 0.2,
-      shininess: 80,
-      specular: 0xffffff,
+      roughness: 0.28,
+      metalness: 0.9,
     });
     for (let d = 0; d < 2; d++) {
       const doorLine = new THREE.Mesh(doorGeo, doorMat);

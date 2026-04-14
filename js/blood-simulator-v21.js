@@ -28,6 +28,64 @@ const _BSV21_MIST = {
   robot:         0xaaccff,
 };
 
+const _BSV21_GROUND_Y = 0.015;
+
+function _bsv21CreateCircleTexture(size) {
+  const texSize = size || 128;
+  function _solidFallbackTexture() {
+    return null;
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = texSize;
+  canvas.height = texSize;
+  if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '')) {
+    return _solidFallbackTexture();
+  }
+  let ctx = null;
+  try { ctx = canvas.getContext('2d'); } catch (_e) { return _solidFallbackTexture(); }
+  if (!ctx) return _solidFallbackTexture();
+  const r = texSize * 0.5;
+  const grad = ctx.createRadialGradient(r, r, texSize * 0.12, r, r, r);
+  grad.addColorStop(0, 'rgba(255,255,255,1)');
+  grad.addColorStop(0.45, 'rgba(255,255,255,0.9)');
+  grad.addColorStop(0.78, 'rgba(255,255,255,0.35)');
+  grad.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.clearRect(0, 0, texSize, texSize);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, texSize, texSize);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.needsUpdate = true;
+  tex.generateMipmaps = false;
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  return tex;
+}
+
+function _bsv21LoadParticleTextureWithFallback(path) {
+  const fallback = _bsv21CreateCircleTexture(128);
+  if (!fallback) return null;
+  const texture = (typeof fallback.clone === 'function') ? fallback.clone() : fallback;
+  texture.needsUpdate = true;
+  try {
+    const loader = new THREE.TextureLoader();
+    loader.load(
+      path,
+      function onLoad(loaded) {
+        texture.image = loaded.image;
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.needsUpdate = true;
+      },
+      undefined,
+      function onError() {
+        // Keep fallback texture when external texture fails.
+      }
+    );
+  } catch (_e) { /* use fallback */ }
+  return texture;
+}
+
 // Device capability detection — auto-scales pool sizes:
 // Low-memory/mobile (≤2GB or touch device): ≤120 drops / ≤64 mist
 // Mid-tier (≤4GB): 600 drops / 400 mist
@@ -64,6 +122,8 @@ const BloodSimulatorV21 = {
   _head: 0,
   _mistPool: null,
   _mistHead: 0,
+  GROUND_Y: _BSV21_GROUND_Y,
+  _particleTex: null,
 
   // Heartbeat pulse state
   _pulseTimer: 0,
@@ -80,6 +140,7 @@ const BloodSimulatorV21 = {
 
     this._matrix = new THREE.Matrix4();
     this._color  = new THREE.Color();
+    this._particleTex = _bsv21LoadParticleTextureWithFallback('assets/textures/blood-particle.png');
 
     // Drop pool
     this._pool = new Array(this.MAX_DROPS);
@@ -90,7 +151,18 @@ const BloodSimulatorV21 = {
     this._head = 0;
 
     const dropGeo = new THREE.SphereGeometry(0.012, 8, 6);
-    const dropMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+    const dropMatOptions = {
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.92,
+      depthWrite: false,
+      blending: THREE.NormalBlending
+    };
+    if (this._particleTex) {
+      dropMatOptions.map = this._particleTex;
+      dropMatOptions.alphaMap = this._particleTex;
+    }
+    const dropMat = new THREE.MeshBasicMaterial(dropMatOptions);
     this.dropIM = new THREE.InstancedMesh(dropGeo, dropMat, this.MAX_DROPS);
     this.dropIM.count = 0;
     this.dropIM.frustumCulled = false;
@@ -108,10 +180,15 @@ const BloodSimulatorV21 = {
     this._mistHead = 0;
 
     const mistGeo = new THREE.SphereGeometry(1.0, 6, 4);
-    const mistMat = new THREE.MeshBasicMaterial({
+    const mistMatOptions = {
       transparent:true, opacity:0.45, depthWrite:false,
-      vertexColors:true, blending:THREE.AdditiveBlending
-    });
+      vertexColors:true, blending:THREE.NormalBlending
+    };
+    if (this._particleTex) {
+      mistMatOptions.map = this._particleTex;
+      mistMatOptions.alphaMap = this._particleTex;
+    }
+    const mistMat = new THREE.MeshBasicMaterial(mistMatOptions);
     this.mistIM = new THREE.InstancedMesh(mistGeo, mistMat, this.MAX_MIST);
     this.mistIM.count = 0;
     this.mistIM.frustumCulled = false;
@@ -123,14 +200,20 @@ const BloodSimulatorV21 = {
     this._decals = [];
     this._decalHead = 0;
     const decalGeo = new THREE.CircleGeometry(1.0, 12);
-    const decalMat = new THREE.MeshBasicMaterial({
+    const decalMatOptions = {
       transparent:true, opacity:0.82, depthWrite:false,
+      blending: THREE.NormalBlending,
       polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1
-    });
+    };
+    if (this._particleTex) {
+      decalMatOptions.map = this._particleTex;
+      decalMatOptions.alphaMap = this._particleTex;
+    }
+    const decalMat = new THREE.MeshBasicMaterial(decalMatOptions);
     for (let i = 0; i < this.MAX_DECALS; i++) {
       const m = new THREE.Mesh(decalGeo, decalMat.clone());
       m.rotation.x = -Math.PI / 2;
-      m.position.y = 0.015;
+      m.position.y = this.GROUND_Y;
       m.visible = false;
       m.frustumCulled = false;
       scene.add(m);
@@ -171,7 +254,7 @@ const BloodSimulatorV21 = {
     slot.mesh.material.color.setHex(hexColor);
     slot.mesh.material.opacity = 0.82;
     slot.mesh.material.needsUpdate = true;
-    slot.mesh.position.set(x, 0.015, z);
+    slot.mesh.position.set(x, this.GROUND_Y, z);
     slot.mesh.scale.set(radius, 1, radius);
     slot.mesh.visible = true;
     slot.maxLife = lifetime || 25;
@@ -243,8 +326,8 @@ const BloodSimulatorV21 = {
         const drag  = Math.max(0, 1 - d.viscosity * dt * Math.max(speed, 0.1) * 1.2);
         d.vx *= drag; d.vy *= drag; d.vz *= drag;
         d.px += d.vx * dt; d.py += d.vy * dt; d.pz += d.vz * dt;
-        if (d.py <= 0.015) {
-          d.py = 0.015;
+        if (d.py <= this.GROUND_Y) {
+          d.py = this.GROUND_Y;
           d.vy = Math.abs(d.vy) * 0.25;
           if (d.vy < 0.15) {
             d.onGround = true;

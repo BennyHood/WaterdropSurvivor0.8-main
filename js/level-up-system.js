@@ -1595,7 +1595,7 @@ window.spawnBossChest = function(x, z) {
       let activeHold = null; // { timer, card } or null
       choices.forEach((u, index) => {
         const card = document.createElement('div');
-        card.className = 'upgrade-card';
+        card.className = 'upgrade-card aida-card-theme';
         
         // Determine rarity class: rolled _rarity takes priority for scalable upgrades
         if (u._rarity) {
@@ -1721,6 +1721,7 @@ window.spawnBossChest = function(x, z) {
         // LVL UP cards: rarity header + icon + title + desc (playing-card layout)
         const iconHtml = u.icon ? `<span class="upgrade-icon">${u.icon}</span>` : '';
         cardFront.innerHTML = `
+          <div class="upgrade-horus">𓂀</div>
           <div class="upgrade-rarity-header" style="color: ${cardColor}; text-shadow: 0 0 8px ${cardColor};">${cardRarityLabel}</div>
           <div style="text-align: center;">${iconHtml}<div class="upgrade-title">${u.title}</div></div>
           <div class="upgrade-desc">${u.desc}</div>`;

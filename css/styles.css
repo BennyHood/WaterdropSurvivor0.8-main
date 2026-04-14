@@ -8372,6 +8372,62 @@
   text-shadow: 0 0 6px rgba(255,215,0,0.5);
 }
 
+/* LVL UP cards hardcoded to A.I.D.A textbox style */
+#levelup-modal .upgrade-card.aida-card-theme {
+  font-family: 'Courier New', 'Lucida Console', monospace !important;
+  border-radius: 4px !important;
+  border: 2px solid #00ffcc !important;
+  background: rgba(0, 12, 18, 0.94) !important;
+  color: #00ffcc !important;
+  padding: 12px !important;
+  box-shadow:
+    0 0 0 1px rgba(0,255,204,0.3),
+    inset 0 0 12px rgba(0,255,204,0.06),
+    0 0 20px rgba(0,255,204,0.2) !important;
+}
+#levelup-modal .upgrade-card.aida-card-theme::before {
+  border-radius: 2px !important;
+  animation: none !important;
+  opacity: 0.18;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 3px,
+    rgba(0,0,0,0.08) 3px,
+    rgba(0,0,0,0.08) 4px
+  ) !important;
+}
+#levelup-modal .upgrade-card.aida-card-theme .card-front {
+  background: rgba(0, 12, 18, 0.94) !important;
+  border-color: #00ffcc !important;
+  color: #00ffcc !important;
+  border-radius: 4px !important;
+  padding: 10px 8px 12px !important;
+}
+#levelup-modal .upgrade-card.aida-card-theme .upgrade-title {
+  font-family: 'Courier New', 'Lucida Console', monospace !important;
+  color: #00ffcc !important;
+}
+#levelup-modal .upgrade-card.aida-card-theme .upgrade-desc {
+  color: #9efee7 !important;
+}
+#levelup-modal .upgrade-card.aida-card-theme .upgrade-rarity-header {
+  font-family: 'Courier New', 'Lucida Console', monospace !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+#levelup-modal .upgrade-card.aida-card-theme .upgrade-horus {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: rgba(255, 215, 0, 0.72);
+  font-size: 18px;
+  text-shadow: 0 0 6px rgba(255,215,0,0.35);
+  pointer-events: none;
+  z-index: 3;
+}
+
 /* ===================================================================
    REWARD JUICE — Resource icons fly-in, sunburst, confetti
    =================================================================== */

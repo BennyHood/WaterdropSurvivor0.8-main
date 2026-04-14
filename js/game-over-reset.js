@@ -6,8 +6,11 @@
     // start time. Declared here (not inside gameOver) so resetGame() can read it even
     // on the very first run when gameOver() has never been called.
     let _landmarkQuestWasActive = false;
+    let _gameOverTransitionLocked = false;
 
     function gameOver() {
+      if (_gameOverTransitionLocked || (typeof isGameOver !== 'undefined' && isGameOver) || window.isGameOver) return;
+      _gameOverTransitionLocked = true;
       setGameOver(true);
       setGamePaused(true);
       setGameActive(false);
@@ -254,11 +257,16 @@
         questName:     _activeQuest ? (_activeQuest.title || _activeQuest.id || '') : ''
       };
 
+      // Ensure only one end-screen overlay exists.
+      const staleResOverlay = document.getElementById('res-overlay');
+      if (staleResOverlay && staleResOverlay.parentNode) staleResOverlay.parentNode.removeChild(staleResOverlay);
+
       // Use new dopamine end screen if available, fall back to legacy
       if (window.RunEndScreen) {
         // Hide the YOU DIED banner
         const youDiedBanner = document.getElementById('you-died-banner');
         if (youDiedBanner) youDiedBanner.style.display = 'none';
+        if (typeof window.RunEndScreen.hide === 'function') window.RunEndScreen.hide();
         window.RunEndScreen.show(window._resCurrentStats);
         updateGoldDisplays();
       } else {
@@ -1030,6 +1038,7 @@
       }
 
       setGameOver(false);
+      _gameOverTransitionLocked = false;
       // Reset any accumulated pauses before starting a new game
       pauseOverlayCount = 0;
       window.pauseOverlayCount = 0;
@@ -1044,6 +1053,8 @@
       setGamePaused(true);  // Start paused, countdown will unpause (PR #70)
       setGameActive(false);  // Not active until countdown completes (PR #70)
       document.getElementById('gameover-screen').style.display = 'none';
+      const resOverlay = document.getElementById('res-overlay');
+      if (resOverlay && resOverlay.parentNode) resOverlay.parentNode.removeChild(resOverlay);
       updateHUD();
     }
 

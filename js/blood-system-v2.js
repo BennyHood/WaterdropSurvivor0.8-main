@@ -86,6 +86,57 @@ MIST_CLOUD_EXPAND_MIN_FACTOR: 0.5,   // minimum expand-rate multiplier (keeps pu
 MIST_CLOUD_EXPAND_RANGE:      1.0,   // random range added on top of EXPAND_MIN_FACTOR
 };
 
+function _bsCreateCircleTexture(size) {
+var texSize = size || 128;
+function _solidFallbackTexture() {
+return null;
+}
+var canvas = document.createElement('canvas');
+canvas.width = texSize;
+canvas.height = texSize;
+if (typeof navigator !== 'undefined' && /jsdom/i.test(navigator.userAgent || '')) {
+  return _solidFallbackTexture();
+}
+var ctx = null;
+try { ctx = canvas.getContext('2d'); } catch (_e) { return _solidFallbackTexture(); }
+if (!ctx) return _solidFallbackTexture();
+var r = texSize * 0.5;
+var g = ctx.createRadialGradient(r, r, texSize * 0.12, r, r, r);
+g.addColorStop(0,   'rgba(255,255,255,1)');
+g.addColorStop(0.5, 'rgba(255,255,255,0.9)');
+g.addColorStop(0.8, 'rgba(255,255,255,0.35)');
+g.addColorStop(1,   'rgba(255,255,255,0)');
+ctx.clearRect(0, 0, texSize, texSize);
+ctx.fillStyle = g;
+ctx.fillRect(0, 0, texSize, texSize);
+var tex = new THREE.CanvasTexture(canvas);
+tex.needsUpdate = true;
+tex.generateMipmaps = false;
+tex.minFilter = THREE.LinearFilter;
+tex.magFilter = THREE.LinearFilter;
+return tex;
+}
+
+function _bsLoadParticleTexture(path) {
+var fallback = _bsCreateCircleTexture(128);
+if (!fallback) return null;
+var texture = (typeof fallback.clone === 'function') ? fallback.clone() : fallback;
+texture.needsUpdate = true;
+try {
+var loader = new THREE.TextureLoader();
+loader.load(path, function (loaded) {
+  texture.image = loaded.image;
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+}, undefined, function () {
+  // Keep fallback when texture fails to load.
+});
+} catch (_e) {}
+return texture;
+}
+
 // ══════════════════════════════════════════
 //  COLOURS — per enemy type
 //  Add more when you add more enemy types
@@ -518,6 +569,7 @@ core:     { hp:90,  maxHp:90,  yRange:[-1.0,-0.3], bleedRate:0.80, pumpBlood:fal
 
 var _scene       = null;
 var _ready       = false;
+var _particleTex = null;
 var _frame       = 0;   // frame counter for debug
 
 // ── Scratch vectors (NEVER allocate in update loop) ──────────────
@@ -667,7 +719,20 @@ CFG.DECAL_COUNT + ' decals'
 
 function _buildDropPool() {
 var geo = new THREE.SphereGeometry(1.0, 8, 6); // unit sphere, scaled per instance
-var mat = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: true });
+if (!_particleTex) _particleTex = _bsLoadParticleTexture('assets/textures/blood-particle.png');
+var dropMatOpts = {
+  color: 0xffffff,
+  vertexColors: true,
+  transparent: true,
+  opacity: 0.92,
+  depthWrite: false,
+  blending: THREE.NormalBlending
+};
+if (_particleTex) {
+dropMatOpts.map = _particleTex;
+dropMatOpts.alphaMap = _particleTex;
+}
+var mat = new THREE.MeshBasicMaterial(dropMatOpts);
 
 _dropIM = new THREE.InstancedMesh(geo, mat, CFG.DROP_COUNT);
 _dropIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -679,8 +744,8 @@ _dropIM.frustumCulled = false;
 _dropIM.count = 0; // FIXED: Start at 0, will be set dynamically based on active drops
 // BUG F: Set renderOrder for proper layering (drops render after background, before mist)
 _dropIM.renderOrder = 1;
-// BUG F: Ensure depthWrite is true so drops affect depth buffer correctly
-_dropIM.material.depthWrite = true;
+// Transparent particles should not write depth to avoid hard "crystal/square" artifacts.
+_dropIM.material.depthWrite = false;
 _dropIM.material.depthTest = true;
 _scene.add(_dropIM);
 _dropIM.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 999);
@@ -703,8 +768,21 @@ _dropIM.instanceColor.needsUpdate  = true;
 
 function _buildMistPool() {
 var geo = new THREE.SphereGeometry(1.0, 6, 4);
-var mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, vertexColors: true, side: THREE.DoubleSide });
-mat.blending = THREE.AdditiveBlending;
+if (!_particleTex) _particleTex = _bsLoadParticleTexture('assets/textures/blood-particle.png');
+var mistMatOpts = {
+  color: 0xffffff,
+  transparent: true,
+  opacity: 0.55,
+  depthWrite: false,
+  vertexColors: true,
+  side: THREE.DoubleSide,
+  blending: THREE.NormalBlending
+};
+if (_particleTex) {
+mistMatOpts.map = _particleTex;
+mistMatOpts.alphaMap = _particleTex;
+}
+var mat = new THREE.MeshBasicMaterial(mistMatOpts);
 
 _mistIM = new THREE.InstancedMesh(geo, mat, CFG.MIST_COUNT);
 _mistIM.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -762,15 +840,21 @@ _chunks.push(c);
 function _buildDecalPool() {
 // Ground blood splatter decals
 var geo = new THREE.CircleGeometry(1.0, 16);
+if (!_particleTex) _particleTex = _bsLoadParticleTexture('assets/textures/blood-particle.png');
 var mat = new THREE.MeshBasicMaterial({
 transparent: true,
 opacity:     0.80,
 depthWrite:  false,
+blending: THREE.NormalBlending,
 depthTest:   true,
 polygonOffset: true,
 polygonOffsetFactor: -1,
 polygonOffsetUnits: -1,
 });
+if (_particleTex) {
+mat.map = _particleTex;
+mat.alphaMap = _particleTex;
+}
 
 _decals = [];
 for (var i = 0; i < CFG.DECAL_COUNT; i++) {

@@ -855,6 +855,13 @@
         return;
       }
 
+      // Strict one-shot game-over trigger: if HP reached zero outside normal damage flow,
+      // lock transition immediately so death handling cannot fire repeatedly each frame.
+      if (!isGameOver && isGameActive && playerStats && playerStats.hp <= 0) {
+        playerStats.hp = 0;
+        if (typeof window.gameOver === 'function') window.gameOver();
+      }
+
       if (isPaused || isGameOver || !isGameActive) {
         // Update camera to follow player even when paused.
         // Skip camera override during the round-start cinematic so the zoom animation
@@ -3912,4 +3919,3 @@
       }
     }
     } // end THREE check
-

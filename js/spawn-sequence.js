@@ -42,7 +42,7 @@
     // Create a circular platform with metallic appearance
     const platformGeo = new THREE.CylinderGeometry(HOLE_MAX_RADIUS * 0.9, HOLE_MAX_RADIUS * 0.9, 0.3, 32);
     const platformMat = new THREE.MeshStandardMaterial({
-      color: ELEVATOR_COLOR,
+      color: 0x888888, // robust fallback to avoid magenta/pink missing-material artifacts
       roughness: 0.6,
       metalness: 0.7,
       emissive: 0x1a1a1a,
