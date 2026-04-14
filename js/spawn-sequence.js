@@ -421,7 +421,8 @@
         _holeRim.material.transparent = true;
       }
 
-      // Slide ground covers back inward
+      // Slide ground covers back inward — keep fully opaque so they stay the same
+      // dark colour as before the hatch opened (no colour/opacity change after close).
       const slideDistance = HOLE_MAX_RADIUS * 1.2;
       _groundCovers.forEach(cover => {
         const angle = cover.userData.angle;
@@ -430,9 +431,9 @@
         cover.position.x = cover.userData.initialPos.x + offsetX;
         cover.position.z = cover.userData.initialPos.z + offsetZ;
         cover.rotation.z = (1.0 - easeProgress) * 0.3;
-        // Fade out as closing completes
-        cover.material.opacity = 1.0 - easeProgress * 0.5;
-        cover.material.transparent = true;
+        // Maintain full opacity — do NOT alter material opacity so the cover stays dark
+        cover.material.transparent = false;
+        cover.material.opacity = 1.0;
       });
 
       // Lower elevator back down
