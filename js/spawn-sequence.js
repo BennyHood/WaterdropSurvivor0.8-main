@@ -18,7 +18,7 @@
   const HOLE_MAX_RADIUS    = 2.2;                     // Maximum radius of the hole
   const HOLE_EMOJI         = '🕳️';                    // Hole visual indicator
 
-  const ELEVATOR_COLOR     = 0x4A4A4A;  // Dark grey platform
+  const ELEVATOR_COLOR     = 0x888888;  // Metallic grey fallback platform color
   const HOLE_EDGE_COLOR    = 0x2A1A0A;  // Dark brown dirt edge
   const UNDERGROUND_COLOR  = 0x1A1410;  // Very dark underground
 
@@ -42,7 +42,7 @@
     // Create a circular platform with metallic appearance
     const platformGeo = new THREE.CylinderGeometry(HOLE_MAX_RADIUS * 0.9, HOLE_MAX_RADIUS * 0.9, 0.3, 32);
     const platformMat = new THREE.MeshStandardMaterial({
-      color: 0x888888, // robust fallback to avoid magenta/pink missing-material artifacts
+      color: ELEVATOR_COLOR, // robust fallback to avoid magenta/pink missing-material artifacts
       roughness: 0.6,
       metalness: 0.7,
       emissive: 0x1a1a1a,

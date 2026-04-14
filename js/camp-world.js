@@ -1008,7 +1008,7 @@
     const THREE = T();
     const ELEV_POS = { x: 0, y: 0, z: 6 }; // near spawn point
 
-    // Main cylinder body — matte black, partially submerged
+    // Main cylinder body — metallic grey fallback, partially submerged
     const bodyGeo = new THREE.CylinderGeometry(1.2, 1.2, 3.0, 24, 1, true); // open-ended
     const bodyMat = new THREE.MeshStandardMaterial({
       color: 0x888888, // safe fallback so the elevator never renders pink/missing

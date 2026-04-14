@@ -266,7 +266,6 @@
         // Hide the YOU DIED banner
         const youDiedBanner = document.getElementById('you-died-banner');
         if (youDiedBanner) youDiedBanner.style.display = 'none';
-        if (typeof window.RunEndScreen.hide === 'function') window.RunEndScreen.hide();
         window.RunEndScreen.show(window._resCurrentStats);
         updateGoldDisplays();
       } else {
