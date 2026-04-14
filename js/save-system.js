@@ -889,6 +889,8 @@
           if (settings.controlType) gameSettings.controlType = settings.controlType;
           if (settings.soundEnabled !== undefined) gameSettings.soundEnabled = settings.soundEnabled;
           if (settings.musicEnabled !== undefined) gameSettings.musicEnabled = settings.musicEnabled;
+          if (settings.hudScale !== undefined) gameSettings.hudScale = settings.hudScale;
+          if (settings.hudOpacity !== undefined) gameSettings.hudOpacity = settings.hudOpacity;
         } else {
           // No saved settings — auto-detect best control type.
           // Touch events + no fine pointer = mobile/tablet → 'touch' (on-screen joystick).

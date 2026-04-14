@@ -26,9 +26,13 @@
     const soundToggle = document.getElementById('sound-toggle');
     const musicToggle = document.getElementById('music-toggle');
     const fpsBoosterStatus = document.getElementById('fps-booster-status');
+    const hudScaleSlider = document.getElementById('hud-scale-slider');
+    const hudScaleValue = document.getElementById('hud-scale-value');
+    const hudOpacitySlider = document.getElementById('hud-opacity-slider');
+    const hudOpacityValue = document.getElementById('hud-opacity-value');
+    const hudCustomiseInlineBtn = document.getElementById('hud-customise-inline-btn');
 
     if (!settingsBtn || !settingsModal || !closeBtn) {
-      console.warn('[SettingsUI] Required elements not found');
       return;
     }
 
@@ -148,7 +152,6 @@
               if (window.TraumaSystem && typeof window.TraumaSystem.setEnabled === 'function') {
                 window.TraumaSystem.setEnabled(true);
               }
-              console.log('[SettingsUI] Manual mode: Full Blood/Gore rendering ENABLED');
             }
           }
 
@@ -215,8 +218,6 @@
         if (window.BloodV2 && typeof window.BloodV2.setParticleEffects === 'function') {
           window.BloodV2.setParticleEffects(enabled);
         }
-
-        console.log('[SettingsUI] Particle effects', enabled ? 'enabled' : 'disabled');
       });
     }
 
@@ -226,7 +227,6 @@
         if (window.gameSettings) {
           window.gameSettings.autoAim = this.checked;
           saveSettings();
-          console.log('[SettingsUI] Auto-aim', this.checked ? 'enabled' : 'disabled');
         }
       });
     }
@@ -252,7 +252,6 @@
         if (window.gameSettings) {
           window.gameSettings.soundEnabled = this.checked;
           saveSettings();
-          console.log('[SettingsUI] Sound', this.checked ? 'enabled' : 'disabled');
         }
       });
     }
@@ -268,6 +267,55 @@
           if (window.AudioManager && typeof window.AudioManager.setMusicEnabled === 'function') {
             window.AudioManager.setMusicEnabled(this.checked);
           }
+        }
+      });
+    }
+
+    // ─── HUD Scale & Opacity helpers ───
+    const HUD_SELECTOR = '.hud-top, #hud-top-right-row, #bottom-bars-container, #super-stat-bar, #skill-icons-panel, #rage-hud, #special-attacks-hud';
+
+    function _applyHudScale(pct) {
+      const scale = pct / 100;
+      document.querySelectorAll(HUD_SELECTOR).forEach(function(el) {
+        // Store the scale as a data attribute to avoid clobbering other transforms
+        el.dataset.hudScale = scale;
+        el.style.transform = 'scale(' + scale + ')';
+        el.style.transformOrigin = el.dataset.hudScaleOrigin || 'top left';
+      });
+    }
+    if (hudScaleSlider && hudScaleValue) {
+      hudScaleSlider.addEventListener('input', function() {
+        const pct = parseInt(this.value, 10);
+        hudScaleValue.textContent = pct + '%';
+        if (window.gameSettings) window.gameSettings.hudScale = pct;
+        _applyHudScale(pct);
+        saveSettings();
+      });
+    }
+
+    function _applyHudOpacity(pct) {
+      const opacity = pct / 100;
+      document.querySelectorAll(HUD_SELECTOR).forEach(function(el) { el.style.opacity = opacity; });
+    }
+    if (hudOpacitySlider && hudOpacityValue) {
+      hudOpacitySlider.addEventListener('input', function() {
+        const pct = parseInt(this.value, 10);
+        hudOpacityValue.textContent = pct + '%';
+        if (window.gameSettings) window.gameSettings.hudOpacity = pct;
+        _applyHudOpacity(pct);
+        saveSettings();
+      });
+    }
+
+    // ─── Inline HUD Reposition Button ───
+    if (hudCustomiseInlineBtn) {
+      hudCustomiseInlineBtn.addEventListener('click', function() {
+        closeSettings();
+        if (window.UICalibration && typeof window.UICalibration.enter === 'function') {
+          window.UICalibration.enter(function() {
+            if (window.setGamePaused) window.setGamePaused(false);
+            window.isPaused = false;
+          });
         }
       });
     }
@@ -333,6 +381,18 @@
       if (musicToggle) {
         musicToggle.checked = settings.musicEnabled !== false; // Default to true
       }
+
+      // HUD Scale
+      const hudScale = settings.hudScale || 100;
+      if (hudScaleSlider) hudScaleSlider.value = hudScale;
+      if (hudScaleValue) hudScaleValue.textContent = hudScale + '%';
+      _applyHudScale(hudScale);
+
+      // HUD Opacity
+      const hudOpacity = settings.hudOpacity || 100;
+      if (hudOpacitySlider) hudOpacitySlider.value = hudOpacity;
+      if (hudOpacityValue) hudOpacityValue.textContent = hudOpacity + '%';
+      _applyHudOpacity(hudOpacity);
     }
 
     // ─── Save Settings to localStorage ───
@@ -347,11 +407,12 @@
           autoAim: window.gameSettings.autoAim || false,
           controlType: window.gameSettings.controlType || 'keyboard',
           soundEnabled: window.gameSettings.soundEnabled !== false,
-          musicEnabled: window.gameSettings.musicEnabled !== false
+          musicEnabled: window.gameSettings.musicEnabled !== false,
+          hudScale: window.gameSettings.hudScale || 100,
+          hudOpacity: window.gameSettings.hudOpacity || 100
         };
 
         localStorage.setItem('waterDropSurvivorSettings', JSON.stringify(settingsToSave));
-        console.log('[SettingsUI] Settings saved:', settingsToSave);
 
       } catch (e) {
         console.error('[SettingsUI] Failed to save settings:', e);
@@ -387,7 +448,7 @@
     }
 
     if (unlocked) {
-      console.log('[SettingsUI] Auto-aim unlocked and enabled in settings');
+      // Auto-aim unlocked — no console output needed
     }
   };
 

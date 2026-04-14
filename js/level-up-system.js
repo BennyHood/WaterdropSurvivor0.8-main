@@ -497,7 +497,7 @@ window.spawnBossChest = function(x, z) {
       if (h2) {
         h2.innerText = isBonusRound ? 'BONUS LEVEL UP!' : 'LEVEL UP!';
         h2.style.color = isBonusRound ? '#FFD700' : '#FFFFFF';
-        h2.style.fontSize = isBonusRound ? '28px' : '36px';
+        h2.style.fontSize = isBonusRound ? '38px' : '52px';
         h2.style.fontFamily = 'Bangers, Impact, sans-serif';
         h2.style.fontWeight = 'bold';
         h2.style.letterSpacing = '6px';
@@ -1671,27 +1671,29 @@ window.spawnBossChest = function(x, z) {
         const _backHorusEl = document.createElement('div');
         _backHorusEl.className = 'card-back-horus';
         _backHorusEl.innerHTML = [
-          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 140" width="96" height="67">',
-          '<g fill="none" stroke="#C9A227" stroke-width="1.8">',
-          '<path d="M10 70 Q100 10 190 70 Q100 130 10 70 Z" stroke-opacity="0.9"/>',
-          '<circle cx="100" cy="70" r="28" stroke-opacity="0.85"/>',
-          '<circle cx="100" cy="70" r="12" fill="#C9A227" fill-opacity="0.45"/>',
-          '<circle cx="95" cy="64" r="4.5" fill="#FFD700" fill-opacity="0.65"/>',
-          '<path d="M70 95 L58 118 L72 128" stroke-opacity="0.8"/>',
-          '<path d="M130 88 L148 105 L138 115" stroke-opacity="0.8"/>',
-          '<line x1="80" y1="50" x2="75" y2="38" stroke-opacity="0.7"/>',
-          '<line x1="100" y1="44" x2="100" y2="30" stroke-opacity="0.7"/>',
-          '<line x1="120" y1="50" x2="125" y2="38" stroke-opacity="0.7"/>',
-          '<path d="M40 40 Q100 20 160 40" stroke-width="1.1" stroke-opacity="0.6"/>',
-          '<path d="M72 70 Q86 58 100 70 Q114 82 128 70" stroke-width="0.9" stroke-opacity="0.45"/>',
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" preserveAspectRatio="xMidYMid slice">',
+          '<rect width="200" height="280" fill="#0c0900"/>',
+          '<g fill="none" stroke="#C9A227" stroke-width="2">',
+          '<path d="M10 140 Q100 60 190 140 Q100 220 10 140 Z" stroke-opacity="0.85"/>',
+          '<circle cx="100" cy="140" r="40" stroke-opacity="0.8"/>',
+          '<circle cx="100" cy="140" r="18" fill="#C9A227" fill-opacity="0.35"/>',
+          '<circle cx="94" cy="133" r="7" fill="#FFD700" fill-opacity="0.6"/>',
+          '<path d="M62 170 L48 200 L65 215" stroke-opacity="0.75"/>',
+          '<path d="M138 165 L158 185 L146 200" stroke-opacity="0.75"/>',
+          '<line x1="75" y1="110" x2="68" y2="90" stroke-opacity="0.65"/>',
+          '<line x1="100" y1="102" x2="100" y2="78" stroke-opacity="0.65"/>',
+          '<line x1="125" y1="110" x2="132" y2="90" stroke-opacity="0.65"/>',
+          '<path d="M30 80 Q100 50 170 80" stroke-width="1.2" stroke-opacity="0.5"/>',
+          '<path d="M30 200 Q100 230 170 200" stroke-width="1.2" stroke-opacity="0.5"/>',
+          '<rect x="6" y="6" width="188" height="268" rx="8" ry="8" stroke-width="1.5" stroke-opacity="0.3" fill="none"/>',
           '</g>',
-          '<g fill="#C0C0C0" fill-opacity="0.65">',
-          '<circle cx="14" cy="14" r="2.2"/><circle cx="186" cy="14" r="2.2"/>',
-          '<circle cx="14" cy="126" r="2.2"/><circle cx="186" cy="126" r="2.2"/>',
+          '<g fill="#C0C0C0" fill-opacity="0.6">',
+          '<circle cx="14" cy="14" r="3"/><circle cx="186" cy="14" r="3"/>',
+          '<circle cx="14" cy="266" r="3"/><circle cx="186" cy="266" r="3"/>',
           '</g>',
-          '<g fill="#C9A227" fill-opacity="0.72" font-family="serif" font-size="15">',
-          '<text x="4" y="17">𓂀</text><text x="178" y="17">𓁿</text>',
-          '<text x="4" y="136">𓆣</text><text x="178" y="136">𓃭</text>',
+          '<g fill="#C9A227" fill-opacity="0.7" font-family="serif" font-size="18">',
+          '<text x="4" y="20">𓂀</text><text x="178" y="20">𓁿</text>',
+          '<text x="4" y="278">𓆣</text><text x="178" y="278">𓃭</text>',
           '</g>',
           '</svg>',
         ].join('');
@@ -1922,9 +1924,9 @@ window.spawnBossChest = function(x, z) {
 
               // Wait 0.2s after shards, then close everything with black-hole whirlpool
               setTimeout(() => {
-                // ── Black hole whirlpool — spin → expand → suck → collapse → vanish ──
+                // ── Pure dark-hole suck: a single expanding void that swallows the background ──
                 try {
-                  // Outer wrapper: positions at screen center, spins+expands during suck phase
+                  // Outer wrapper: positions at screen center
                   const bhWrap = document.createElement('div');
                   bhWrap.style.cssText = [
                     'position:fixed','top:50%','left:50%',
@@ -1933,74 +1935,30 @@ window.spawnBossChest = function(x, z) {
                     'z-index:99999','pointer-events:none',
                   ].join(';');
 
-                  // Dark core — grows to swallow screen
+                  // Dark core — grows to swallow entire screen background, no spinning rings
                   const bhCore = document.createElement('div');
                   bhCore.style.cssText = [
                     'position:absolute','border-radius:50%',
-                    'width:6px','height:6px',
+                    'width:8px','height:8px',
                     'top:50%','left:50%',
                     'transform:translate(-50%,-50%)',
-                    'background:radial-gradient(circle,#000 35%,#05000a 65%,transparent 100%)',
-                    'animation:bhWhirlExpand 0.9s cubic-bezier(0.55,0,1,0.45) forwards',
+                    'background:radial-gradient(circle,#000000 40%,#06000e 75%,transparent 100%)',
+                    'animation:bhWhirlExpand 0.85s cubic-bezier(0.55,0,1,0.45) forwards',
                     'will-change:transform',
                   ].join(';');
-
-                  // Spinning rings (whirlpool visual)
-                  const bhRingDefs = [
-                    // [size, borderWidth, color, spinDuration, direction]
-                    ['90px',  '3px', 'rgba(255,255,255,0.55)', '0.35s', 'bhRingSpin'],
-                    ['160px', '2px', 'rgba(180,120,255,0.4)',  '0.50s', 'bhRingSpinRev'],
-                    ['250px', '2px', 'rgba(100,180,255,0.3)',  '0.70s', 'bhRingSpin'],
-                    ['380px', '1px', 'rgba(255,200,80,0.2)',   '1.00s', 'bhRingSpinRev'],
-                    ['550px', '1px', 'rgba(255,255,255,0.12)', '1.40s', 'bhRingSpin'],
-                  ];
-                  const bhRings = [];
-                  bhRingDefs.forEach(([sz, bw, col, sd, anim]) => {
-                    const r = document.createElement('div');
-                    r.style.cssText = [
-                      'position:absolute','border-radius:50%',
-                      `width:${sz}`,`height:${sz}`,
-                      'top:50%','left:50%',
-                      'transform:translate(-50%,-50%) scale(0)',
-                      `border:${bw} solid ${col}`,
-                      `animation:${anim} ${sd} linear infinite`,
-                      'opacity:0','will-change:transform,opacity',
-                    ].join(';');
-                    bhWrap.appendChild(r);
-                    bhRings.push(r);
-                  });
 
                   bhWrap.appendChild(bhCore);
                   document.body.appendChild(bhWrap);
 
-                  // Step 1 (10ms): rings appear and grow while core expands
+                  // Step 2 (850ms): core has expanded — now collapse (contract) back to nothing
                   setTimeout(() => {
-                    bhRings.forEach((r, _ri) => {
-                      setTimeout(() => {
-                        r.style.transition = `transform 0.6s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s ease-out`;
-                        r.style.transform = 'translate(-50%,-50%) scale(1)';
-                        r.style.opacity = '1';
-                      }, _ri * 80);
-                    });
-                  }, 10);
+                    bhCore.style.animation = 'bhWhirlContract 0.5s cubic-bezier(0.55,0,1,0.45) forwards';
+                  }, 850);
 
-                  // Step 2 (900ms): core has expanded — hold a moment so the whirlpool is visible
-                  // then collapse everything back to nothing
-                  setTimeout(() => {
-                    bhCore.style.animation = 'bhWhirlContract 0.6s cubic-bezier(0.55,0,1,0.45) forwards';
-                    bhRings.forEach((r, _ri) => {
-                      setTimeout(() => {
-                        r.style.transition = 'transform 0.5s ease-in, opacity 0.4s ease-in';
-                        r.style.transform = 'translate(-50%,-50%) scale(0)';
-                        r.style.opacity = '0';
-                      }, _ri * 60);
-                    });
-                  }, 900);
-
-                  // Step 3 (1550ms): remove DOM node
+                  // Step 3 (1400ms): remove DOM node
                   setTimeout(() => {
                     if (bhWrap.parentNode) bhWrap.parentNode.removeChild(bhWrap);
-                  }, 1550);
+                  }, 1400);
                 } catch (_bhe) { /* non-critical visual — ignore */ }
 
                 // PERF FIX: Clean up DOM elements and event listeners to prevent memory leaks
@@ -2222,7 +2180,20 @@ window.spawnBossChest = function(x, z) {
         }
       }
 
-      // --- Dopamine level-up FX: explosion FIRST, then show modal ---
+      // --- Show overhead LEVEL UP! text first, then fire FX and show cards ---
+      // Spawn a large floating "LEVEL UP!" text over the player immediately so
+      // the player sees it before the card modal appears.
+      try {
+        if (typeof createFloatingText === 'function' && typeof player !== 'undefined' && player && player.mesh) {
+          createFloatingText(isBonusRound ? '⭐ BONUS LEVEL UP! ⭐' : '⬆ LEVEL UP! ⬆', {
+            x: player.mesh.position.x,
+            y: player.mesh.position.y + 2.5,
+            z: player.mesh.position.z
+          }, isBonusRound ? '#FFD700' : '#FFFFFF', 2.2);
+        }
+      } catch (_fltErr) { /* non-critical */ }
+
+      // --- Dopamine level-up FX: explosion first, then show modal ---
       if (window.DopamineSystem && window.DopamineSystem.LevelUpFX) {
         window.DopamineSystem.LevelUpFX.play(function() {
           _doShowModal();

@@ -258,6 +258,9 @@ const BloodSimulatorV21 = {
         const dz = d.pz - this.player.position.z;
         if (dx*dx + dz*dz < 1.8 && d.py > 0.1) { d.vx += dx*6*dt; d.vz += dz*6*dt; }
       }
+      // Skip rendering on-ground drops — decal handles the visual; this prevents
+      // z-fighting artifacts between the drop sphere and the terrain surface.
+      if (d.onGround) continue;
       if (activeDrops >= this.MAX_DROPS) continue;
       matrix.makeScale(d.radius*2, d.radius*2, d.radius*2);
       matrix.setPosition(d.px, d.py, d.pz);
