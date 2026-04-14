@@ -5788,7 +5788,7 @@
   // Play a construction animation when a building is first unlocked
   function _playBuildingUnlockAnimation(buildingId) {
     const grp = _buildingMeshes[buildingId];
-    if (!grp) return;
+    if (!grp || !_campScene) return;
     const THREE = T();
 
     // Remove blueprint and construction mode immediately
